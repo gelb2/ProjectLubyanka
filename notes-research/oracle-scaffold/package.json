@@ -1,13 +1,30 @@
 {
   "name": "lubyanka-oracle-scaffold",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "lubyanka-oracle": "./oracle.mjs"
+    "lubyanka-oracle": "./oracle.mjs",
+    "lubyanka": "./managed.mjs"
   },
-  "files": ["oracle.mjs", "lifecycle.mjs", "procedure.md", "self-critique.md"],
+  "files": [
+    "oracle.mjs",
+    "lifecycle.mjs",
+    "procedure.md",
+    "self-critique.md",
+    "engine.mjs",
+    "managed.mjs",
+    "project.mjs",
+    "lab.mjs",
+    "gate.mjs",
+    "hooks.mjs",
+    "managed.md"
+  ],
   "scripts": {
     "test": "node --test"
+  },
+  "exports": "./engine.mjs",
+  "engines": {
+    "node": ">=20"
   }
 }
