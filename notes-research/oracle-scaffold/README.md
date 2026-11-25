@@ -4,6 +4,17 @@
 
 `lubyanka adopt`로 방법론을 도입하고 `lubyanka`로 독립 계획 검토와 Docker 시험, Git 차단, 종료 기록을 사용한다. npm 모듈은 `evaluateOracle`을 내보낸다. [도입 후 관리 절차](managed.md)
 
+## 설치
+
+Node.js 20 이상이 필요하다. Git 저장소에 적용할 때는 Git을, 샤라시카를 실행할 때는 Docker와 프로젝트가 지정한 로컬 이미지를 준비한다.
+
+```sh
+npm install --save-dev --save-exact lubyanka-oracle-scaffold@0.1.1
+npm exec -- lubyanka adopt /path/to/git-root
+```
+
+`adopt`로 만든 정본문서와 정답지를 실제 프로젝트 요구에 맞춰 작성하고 기준 커밋에 기록한다. 이후 `npm exec -- lubyanka install-hooks /path/to/git-root`로 해당 복제본의 훅을 연결한다. 프로젝트에 포함된 기존 Git 훅도 이어서 실행한다.
+
 ## 문서 스캐폴드
 
 ```sh

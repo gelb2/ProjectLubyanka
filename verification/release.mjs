@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,6 +51,13 @@ try {
   const request = join(temp, 'request.txt');
   await writeFile(request, '시험 서비스 결과를 갱신하고 기존 거절 정책을 보존한다.\n');
   git(['init', '--template=', '-b', 'develop']);
+  const fixtureSize = 65 * 1024 * 1024;
+  const fixture = await open(join(project, 'archive-size-fixture.bin'), 'w');
+  try {
+    await fixture.write(Buffer.from([0x5a]), 0, 1, fixtureSize - 1);
+  } finally {
+    await fixture.close();
+  }
   await writeFile(join(project, 'AGENTS.md'), '# 기존 프로젝트 지시\n사용자 원본을 보존한다.\n');
   const service = (version, allowViewer = false) => `
 export const version = ${JSON.stringify(version)};
@@ -125,7 +132,11 @@ if (process.argv[2] === 'plan') {
   let outsideRead = false;
   try { fs.readFileSync(${JSON.stringify(outside)}); outsideRead = true; } catch {}
   const isolated = !outsideRead && Object.keys(os.networkInterfaces()).every(name => name === 'lo');
-  console.log(JSON.stringify({ PLAN: isolated && accepts('editor') && !accepts('viewer') }));
+  const fd = fs.openSync('archive-size-fixture.bin', 'r');
+  const last = Buffer.alloc(1);
+  const intact = fs.fstatSync(fd).size === ${fixtureSize} && fs.readSync(fd, last, 0, 1, ${fixtureSize - 1}) === 1 && last[0] === 0x5a;
+  fs.closeSync(fd);
+  console.log(JSON.stringify({ PLAN: isolated && intact && accepts('editor') && !accepts('viewer') }));
 } else {
   const store = createStore();
   await Promise.all(['editor', 'viewer', 'editor'].map(role => store.submit(role)));
@@ -311,6 +322,7 @@ console.log(JSON.stringify({
   console.log(`릴리스 후보 ${pack.filename}의 오프라인 설치와 API import 통과`);
   console.log('기존·빈 프로젝트 도입, 기존 지침과 Git 훅 보존, 자아비판 전문 전달 확인');
   console.log('배포 제외 속성의 영향을 받지 않는 Docker 계획·기능·병합 시험, 호스트 파일·네트워크 격리, 동시 실행과 정책 차단 검사 통과');
+  console.log('64 MiB 초과 Git 아카이브를 Docker에 전달하고 파일 끝까지 보존 확인');
   console.log('동일한 인용을 단 계획도 독립 검토에서 적용 근거가 빠지면 거부');
   console.log('계획·시험 누락, --no-verify 커밋, 잘못된 관측, 바뀐 스테이징·정본·시험 기록과 미설치 훅, 시험 없는 fast-forward 거부 확인');
   console.log('검증한 커밋·병합·종료 보고, 재독 후 실패 보고와 단순 질문 보고 통과');

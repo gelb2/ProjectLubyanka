@@ -43,6 +43,8 @@ try {
   const installed = join(installation, 'node_modules', tarball.name);
   const manifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
   assert.equal(manifest.bin['lubyanka-oracle'], './oracle.mjs');
+  assert.equal(manifest.private, undefined);
+  assert.deepEqual(manifest.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' });
   const executable = process.platform === 'win32' ? process.execPath : join(installation, 'node_modules', '.bin', 'lubyanka-oracle');
   const entry = process.platform === 'win32' ? [join(installed, 'oracle.mjs')] : [];
   const cli = (args, expected) => run(executable, [...entry, ...args], installation, expected);
@@ -108,7 +110,7 @@ try {
     "import { evaluateOracle } from 'lubyanka-oracle-scaffold'; if (typeof evaluateOracle !== 'function') process.exit(1);",
   ], installation, 0);
   console.log('공개 evaluateOracle API import 성공. 기존 명령의 호환 범위를 확인했습니다.');
-  console.log(`npm 게시 보호 · private=${manifest.private}`);
+  console.log('npm 공개 레지스트리 설정 확인');
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

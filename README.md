@@ -8,6 +8,15 @@
 - [이관 검증과 릴리스 판정](verification/README.md)
 - [프로젝트 자아비판문](LUBYANKA-SELF-CRITIQUE.md) · [프로젝트 정답지](lubyanka-oracle.json)
 
+## npm 설치
+
+```sh
+npm install --save-dev --save-exact lubyanka-oracle-scaffold@0.1.1
+npm exec -- lubyanka adopt "$(git rev-parse --show-toplevel)"
+```
+
+[npm 패키지](https://www.npmjs.com/package/lubyanka-oracle-scaffold) · [프로젝트 설정과 시험](notes-research/oracle-scaffold/managed.md)
+
 ## 로컬 실행
 
 ```sh
