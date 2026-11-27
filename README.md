@@ -2,6 +2,7 @@
 
 루비얀카는 자아비판문을 읽고 사용자 요구와 정답지에 근거해 계획을 세우는 방법론이다. 샤라시카는 계획·기능·병합 후보를 격리된 조건에서 실행해 시험한다. 이 저장소에는 방법론 정본, 실행 정답지 API, 도입·격리 시험·Git 검증을 수행하는 npm CLI가 있다.
 
+- [최상위 기획 정본과 문서 변경 순서](governance/PROJECT-CHARTER.md)
 - [방법론 정본](governance/LUBYANKA.md)
 - [라이브러리 구현 계획](notes-research/LUBYANKA-SHARASHKA-IMPLEMENTATION-PLAN.md)
 - [정답지 연구와 사례](notes-research/README.md)

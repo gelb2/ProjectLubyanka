@@ -17,6 +17,8 @@ Sass에 있을 때 기존 시험이 통과해도 경로를 지정한 JSON의 검
 
 문서 형식에 빈칸이 없는 것을 제품 판정으로 확대할 수 있었다. 이후 판정은 독립 정답지와 격리 실행값을 대조한다. 기존 Git 훅의 중단 코드만 믿으면 통합 브랜치 삭제나 pre-commit 생략을 놓친다. 실제 ref 갱신도 검증한 후보와 대조한다. 같은 원문이 연결된 두 계획의 결과가 달라지는지 독립 검토에서 확인한다. 로컬 적용 결과와 실사용 AI 호스트·원격 보호 효과를 별개로 남긴다. [릴리스 검증](verification/README.md)
 
+2026-11-28 정본·이식 계획 재검토에서 기존 브랜치 시험이 `main`과 `develop`의 커밋이 다를 때만 잘못된 출발점을 거부하는지 확인했다. 같은 커밋을 가리키는 임시 저장소에 현행 훅을 연결하자 `develop`과 `main`을 각각 명시한 브랜치 생성이 둘 다 성공했다. 훅은 새 참조의 커밋을 대조한다. 이 값만으로 사용자가 지정한 출발 브랜치 이름을 알 수 없다. 두 조건을 계획의 인수 시험에 기록했다. 같은 커밋에서의 차단은 구현 과제로 남는다. [브랜치 검사](verification/branch-guard.sh) · [Git 참조 갱신 명세](https://git-scm.com/docs/githooks#_reference_transaction)
+
 작은 합성 저장소를 시험해 대용량 후보도 통과하리라 가정했다. VasariArtwork의 기존 커밋을 보관한 83,947,520바이트 아카이브는 `spawnSync`의 64 MiB 출력 버퍼를 넘어서 `ENOBUFS`로 실패했다. Node.js의 `stdio` 파일 디스크립터 연결을 이용해 Git 출력을 제한 권한의 임시 파일에 쓰고 그 파일을 Docker 입력으로 연결했다. 65 MiB 합성 파일의 마지막 바이트와 Vasari 실제 커밋의 전체 런타임 번들 해시를 검증했다. npm 공개 여부와 사용자 프로젝트 동작은 레지스트리 재설치와 해당 프로젝트 시험 기록으로 각각 확인한다. [Node.js child_process 공식 문서](https://nodejs.org/download/release/latest-jod/docs/api/child_process.html#optionsstdio)
 
 ## 자아비판을 읽은 뒤에도 근거보다 넓게 보고한 일
