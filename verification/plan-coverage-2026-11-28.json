@@ -1,0 +1,320 @@
+{
+  "testedOn": "2026-11-28",
+  "coreRevision": "532083e8c99260eb03ab9d5a5743b40f672e9eb5",
+  "consumerRevision": "17ea2667476e120c933e7ffa1c6d33cc2d14dad6",
+  "planSource": "evidence/private/sharashka-adoption-2026-11-27/plan.json",
+  "planFileSHA256": "8b5a7163c42382d4d9a1a60f528b987db901cd4e8ea913ef2b159ccab8cd53e3",
+  "addedInstruction": "작품 상세의 캡션을 끈 뒤 화면을 다시 열었을 때 설정이 유지되는지도 검사한다.",
+  "runs": [
+    {
+      "version": "0.3.0",
+      "case": "baseline",
+      "decisionIds": [
+        "ISOLATION",
+        "PLAN-INPUTS",
+        "ACCESS",
+        "UPDATE",
+        "CATALOG",
+        "RUNTIME"
+      ],
+      "steps": [
+        {
+          "action": "begin",
+          "exit": 0,
+          "out": {
+            "task": "3462fdfe-559b-4adb-85e1-f4ff4af7aa05"
+          },
+          "err": ""
+        },
+        {
+          "action": "plan",
+          "exit": 0,
+          "out": {
+            "status": "recorded",
+            "task": "3462fdfe-559b-4adb-85e1-f4ff4af7aa05",
+            "next": "verify plan",
+            "semanticReview": "기준 커밋에 있는 독립 계획 검토기가 결정과 근거를 대조합니다."
+          },
+          "err": ""
+        },
+        {
+          "action": "verify",
+          "exit": 0,
+          "out": {
+            "phase": "plan",
+            "status": "pass",
+            "results": [
+              {
+                "id": "ISOLATION",
+                "status": "pass",
+                "observed": true
+              },
+              {
+                "id": "PLAN-INPUTS",
+                "status": "pass",
+                "observed": true
+              }
+            ],
+            "evidence": "evidence-3462fdfe-559b-4adb-85e1-f4ff4af7aa05-plan.json",
+            "tree": "c5918f8aaa993445aa2d4b9313f51317b01b54b0"
+          },
+          "err": ""
+        },
+        {
+          "action": "permit",
+          "exit": 0,
+          "out": {
+            "status": "permitted",
+            "task": "3462fdfe-559b-4adb-85e1-f4ff4af7aa05"
+          },
+          "err": ""
+        }
+      ]
+    },
+    {
+      "version": "0.3.0",
+      "case": "new-requirement",
+      "decisionIds": [
+        "ISOLATION",
+        "PLAN-INPUTS",
+        "ACCESS",
+        "UPDATE",
+        "CATALOG",
+        "RUNTIME"
+      ],
+      "steps": [
+        {
+          "action": "begin",
+          "exit": 0,
+          "out": {
+            "task": "d016cf69-82f3-480b-bccc-21499f8a4e7a"
+          },
+          "err": ""
+        },
+        {
+          "action": "plan",
+          "exit": 0,
+          "out": {
+            "status": "recorded",
+            "task": "d016cf69-82f3-480b-bccc-21499f8a4e7a",
+            "next": "verify plan",
+            "semanticReview": "기준 커밋에 있는 독립 계획 검토기가 결정과 근거를 대조합니다."
+          },
+          "err": ""
+        },
+        {
+          "action": "verify",
+          "exit": 0,
+          "out": {
+            "phase": "plan",
+            "status": "pass",
+            "results": [
+              {
+                "id": "ISOLATION",
+                "status": "pass",
+                "observed": true
+              },
+              {
+                "id": "PLAN-INPUTS",
+                "status": "pass",
+                "observed": true
+              }
+            ],
+            "evidence": "evidence-d016cf69-82f3-480b-bccc-21499f8a4e7a-plan.json",
+            "tree": "c5918f8aaa993445aa2d4b9313f51317b01b54b0"
+          },
+          "err": ""
+        },
+        {
+          "action": "permit",
+          "exit": 0,
+          "out": {
+            "status": "permitted",
+            "task": "d016cf69-82f3-480b-bccc-21499f8a4e7a"
+          },
+          "err": ""
+        }
+      ]
+    },
+    {
+      "version": "0.3.0",
+      "case": "registered-requirement-omitted",
+      "decisionIds": [
+        "ISOLATION",
+        "PLAN-INPUTS",
+        "ACCESS",
+        "UPDATE",
+        "CATALOG"
+      ],
+      "steps": [
+        {
+          "action": "begin",
+          "exit": 1,
+          "out": {},
+          "err": "같은 요청의 미해결 검증 기록이 있습니다. begin --resume으로 이어 가세요."
+        },
+        {
+          "action": "plan",
+          "exit": 1,
+          "out": {},
+          "err": "계획에서 빠진 사용자 요구 · RUNTIME"
+        }
+      ]
+    },
+    {
+      "version": "0.3.1",
+      "case": "baseline",
+      "decisionIds": [
+        "ISOLATION",
+        "PLAN-INPUTS",
+        "ACCESS",
+        "UPDATE",
+        "CATALOG",
+        "RUNTIME"
+      ],
+      "steps": [
+        {
+          "action": "begin",
+          "exit": 0,
+          "out": {
+            "task": "243161fa-64fc-4003-a98c-23515a4668b8"
+          },
+          "err": ""
+        },
+        {
+          "action": "plan",
+          "exit": 0,
+          "out": {
+            "status": "recorded",
+            "task": "243161fa-64fc-4003-a98c-23515a4668b8",
+            "next": "verify plan",
+            "semanticReview": "기준 커밋에 있는 독립 계획 검토기가 결정과 근거를 대조합니다."
+          },
+          "err": ""
+        },
+        {
+          "action": "verify",
+          "exit": 0,
+          "out": {
+            "phase": "plan",
+            "status": "pass",
+            "results": [
+              {
+                "id": "ISOLATION",
+                "status": "pass",
+                "observed": true
+              },
+              {
+                "id": "PLAN-INPUTS",
+                "status": "pass",
+                "observed": true
+              }
+            ],
+            "evidence": "evidence-243161fa-64fc-4003-a98c-23515a4668b8-plan.json",
+            "tree": "c5918f8aaa993445aa2d4b9313f51317b01b54b0"
+          },
+          "err": ""
+        },
+        {
+          "action": "permit",
+          "exit": 0,
+          "out": {
+            "status": "permitted",
+            "task": "243161fa-64fc-4003-a98c-23515a4668b8"
+          },
+          "err": ""
+        }
+      ]
+    },
+    {
+      "version": "0.3.1",
+      "case": "new-requirement",
+      "decisionIds": [
+        "ISOLATION",
+        "PLAN-INPUTS",
+        "ACCESS",
+        "UPDATE",
+        "CATALOG",
+        "RUNTIME"
+      ],
+      "steps": [
+        {
+          "action": "begin",
+          "exit": 0,
+          "out": {
+            "task": "ecc12dd4-df62-4a95-9c20-a7ec2270bbc6"
+          },
+          "err": ""
+        },
+        {
+          "action": "plan",
+          "exit": 0,
+          "out": {
+            "status": "recorded",
+            "task": "ecc12dd4-df62-4a95-9c20-a7ec2270bbc6",
+            "next": "verify plan",
+            "semanticReview": "기준 커밋에 있는 독립 계획 검토기가 결정과 근거를 대조합니다."
+          },
+          "err": ""
+        },
+        {
+          "action": "verify",
+          "exit": 0,
+          "out": {
+            "phase": "plan",
+            "status": "pass",
+            "results": [
+              {
+                "id": "ISOLATION",
+                "status": "pass",
+                "observed": true
+              },
+              {
+                "id": "PLAN-INPUTS",
+                "status": "pass",
+                "observed": true
+              }
+            ],
+            "evidence": "evidence-ecc12dd4-df62-4a95-9c20-a7ec2270bbc6-plan.json",
+            "tree": "c5918f8aaa993445aa2d4b9313f51317b01b54b0"
+          },
+          "err": ""
+        },
+        {
+          "action": "permit",
+          "exit": 0,
+          "out": {
+            "status": "permitted",
+            "task": "ecc12dd4-df62-4a95-9c20-a7ec2270bbc6"
+          },
+          "err": ""
+        }
+      ]
+    },
+    {
+      "version": "0.3.1",
+      "case": "registered-requirement-omitted",
+      "decisionIds": [
+        "ISOLATION",
+        "PLAN-INPUTS",
+        "ACCESS",
+        "UPDATE",
+        "CATALOG"
+      ],
+      "steps": [
+        {
+          "action": "begin",
+          "exit": 1,
+          "out": {},
+          "err": "같은 요청의 미해결 검증 기록이 있습니다. begin --resume으로 이어 가세요."
+        },
+        {
+          "action": "plan",
+          "exit": 1,
+          "out": {},
+          "err": "계획에서 빠진 사용자 요구 · RUNTIME"
+        }
+      ]
+    }
+  ]
+}

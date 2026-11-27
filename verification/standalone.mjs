@@ -33,7 +33,9 @@ try {
     'pack', '--offline', '--ignore-scripts', '--json', '--pack-destination', workspace,
   ], source, 0).stdout)[0];
   assert.deepEqual(tarball.files.map(entry => entry.path).sort(), [
-    'README.md', 'lifecycle.mjs', 'oracle.mjs', 'package.json', 'procedure.md', 'self-critique.md',
+    'README.md', 'engine.mjs', 'gate.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
+    'managed.mjs', 'method-audit.mjs', 'oracle.mjs', 'package.json', 'procedure.md', 'project.mjs',
+    'report.mjs', 'self-critique.md', 'sharashka.mjs',
   ]);
   run('npm', [
     'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', join(workspace, tarball.filename),
@@ -42,6 +44,8 @@ try {
   const installed = join(installation, 'node_modules', tarball.name);
   const manifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
   assert.equal(manifest.bin['lubyanka-oracle'], './oracle.mjs');
+  assert.equal(manifest.private, undefined);
+  assert.deepEqual(manifest.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' });
   const executable = process.platform === 'win32' ? process.execPath : join(installation, 'node_modules', '.bin', 'lubyanka-oracle');
   const entry = process.platform === 'win32' ? [join(installed, 'oracle.mjs')] : [];
   const cli = (args, expected) => run(executable, [...entry, ...args], installation, expected);
@@ -101,18 +105,13 @@ try {
   console.log(`오프라인 설치 통과 · ${tarball.name} · 패키지 파일 ${tarball.files.length}개`);
   console.log('init · start · check · finish 실행 확인 · 정상 0 / 미판정 2 / 손상 JSON·스키마 오류 1');
   console.log(`start 출력의 자아비판문 전문 표식 · ${started.stdout.includes(marker) ? '있음' : '없음'}`);
-  console.log(`샤라시카 실행 기록 없이 finish · 종료 코드 ${finish.status}, 문서 검토 출력 · 미판정 정답지도 동일`);
-  for (const command of ['plan', 'verify', 'submit', 'lab']) {
-    const result = cli([command, project]);
-    const usage = result.stderr.includes('lubyanka-oracle <init|check>');
-    console.log(`${command} · ${usage ? '사용법 출력, 명령 미지원' : '별도 동작 확인 필요'} · 종료 코드 ${result.status}`);
-  }
-  const api = run(process.execPath, [
-    '--input-type=module', '-e', "await import('lubyanka-oracle-scaffold');",
-  ], installation);
-  const absent = api.stderr.includes('ERR_MODULE_NOT_FOUND');
-  console.log(`패키지 API import · ${absent ? '진입점 없음' : '별도 동작 확인 필요'} · 종료 코드 ${api.status}`);
-  console.log(`npm 게시 보호 · private=${manifest.private}`);
+  console.log(`도입 전 문서 전용 finish · 종료 코드 ${finish.status}, 문서 검토 출력 · 미판정 정답지도 동일`);
+  run(process.execPath, [
+    '--input-type=module', '-e',
+    "import { evaluateOracle } from 'lubyanka-oracle-scaffold'; if (typeof evaluateOracle !== 'function') process.exit(1);",
+  ], installation, 0);
+  console.log('공개 evaluateOracle API import 성공. 기존 명령의 호환 범위를 확인했습니다.');
+  console.log('npm 공개 레지스트리 설정 확인');
 } finally {
   await rm(workspace, { recursive: true, force: true });
 }

@@ -66,7 +66,7 @@ async function readDocuments(documents) {
   return snapshots;
 }
 
-export async function start(root, documents, reviewPath, created, inspectOracle) {
+export async function start(root, documents, reviewPath, created, inspectOracle, { quiet = false } = {}) {
   const before = {};
   const review = {
     instruction: '',
@@ -83,6 +83,7 @@ export async function start(root, documents, reviewPath, created, inspectOracle)
   }
   const record = { version: 1, root, before, review };
   await writeFile(reviewPath, `${JSON.stringify(record, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+  if (quiet) return;
   for (const issue of issues ?? []) console.error(`정답지 미판정 · ${issue}`);
   for (const [field, label] of Object.entries(reviewFields)) {
     console.log(`${label} 전문 읽기 · ${documents[field].path}`);
@@ -131,13 +132,15 @@ function readCodeReview(review) {
   return { result, source, argument, verification, reread };
 }
 
-export async function finish(root, reviewPath, json, procedureName, inspectOracle) {
-  const { content: raw } = await readRegularFile(reviewPath, '작업 검토 파일');
-  let record;
-  try {
-    record = JSON.parse(raw);
-  } catch {
-    throw new Error('작업 검토 파일을 JSON으로 읽을 수 없습니다.');
+export async function finish(root, reviewPath, json, procedureName, inspectOracle, validatedEvidence, record) {
+  const managed = record !== undefined;
+  if (!record) {
+    const { content: raw } = await readRegularFile(reviewPath, '작업 검토 파일');
+    try {
+      record = JSON.parse(raw);
+    } catch {
+      throw new Error('작업 검토 파일을 JSON으로 읽을 수 없습니다.');
+    }
   }
   validateReview(record, root);
   const { before, review } = record;
@@ -145,6 +148,7 @@ export async function finish(root, reviewPath, json, procedureName, inspectOracl
   const snapshots = await readDocuments(documents);
   const codeReview = readCodeReview(review);
   const report = { instruction: review.instruction, codeReview, documents: {}, remaining: review.remaining };
+  if (validatedEvidence) report.verification = validatedEvidence;
   for (const [field, label] of Object.entries(reviewFields)) {
     const document = documents[field];
     const { content, sha256 } = snapshots[field];
@@ -157,6 +161,7 @@ export async function finish(root, reviewPath, json, procedureName, inspectOracl
     report.documents[field] = { path: document.name, created: before[field].created, status, summary, evidence };
   }
 
+  if (managed) return report;
   if (json) {
     console.log(JSON.stringify(report, null, 2));
     return;
