@@ -451,6 +451,40 @@ console.log(JSON.stringify(output));
   cli(['verify', 'feature'], 1);
   assert.equal(JSON.parse(cli(['finish', 'plan']).stdout).verification.stage, 'plan');
 
+  const draftPath = join(temp, 'draft.txt');
+  await writeFile(draftPath, '실행에서 입력 3건을 비교했습니다.\n');
+  assert.equal(JSON.parse(cli(['review-draft', draftPath]).stdout).status, 'clear');
+  await writeFile(draftPath, '근거는\n없습니다.\n');
+  const rejectedDraft = JSON.parse(cli(['review-draft', draftPath], 1).stdout);
+  assert.equal(rejectedDraft.status, 'fail');
+  assert.deepEqual((await read(rejectedDraft.evidence)).triggers, ['근거는 없습니다']);
+  cli(['finish', 'plan'], 1);
+  assert.match(cli(['begin', question, '--kind', 'answer'], 1).stderr, /begin --resume/);
+  const resumedAnswer = JSON.parse(cli(['begin', question, '--kind', 'answer', '--resume']).stdout);
+  assert.equal((await read(join(project, '.git/lubyanka/task.json'))).recoveryRequired, true);
+  const rejectedFinishReview = await read(resumedAnswer.reviewPath);
+  rejectedFinishReview.review.codeReview.argument = '철회합니다.';
+  await write(resumedAnswer.reviewPath, rejectedFinishReview);
+  assert.match(cli(['finish', 'plan'], 1).stderr, /보고 초안을 다시 검증/);
+  const stateAfterDraft = await read(join(project, '.git/lubyanka/task.json'));
+  assert.deepEqual(stateAfterDraft.receipts, {});
+  assert.deepEqual((await read(join(project, '.git/lubyanka', stateAfterDraft.draftFailure.filename))).triggers, ['철회합니다']);
+  const draftCorrection = {
+    ...recovery, reason: '사용자에게 전달할 초안에서 검산을 누락했다.',
+    technicalCause: '일반 문서 검토에 실행한 질문의 관측이 붙지 않았다.',
+  };
+  await writeFile(critiquePath, (await readFile(critiquePath, 'utf8')) +
+    '\n' + draftCorrection.reason + '\n' + draftCorrection.technicalCause + '\n');
+  git(['add', 'LUBYANKA-SELF-CRITIQUE.md']);
+  const correctedAnswer = JSON.parse(cli(['begin', question, '--kind', 'answer', '--resume']).stdout);
+  await write(correctedAnswer.reviewPath, answerReview);
+  cli(['plan', planPath]);
+  const correctedResult = JSON.parse(cli(['verify', 'plan']).stdout);
+  const correctedReport = await bindReport(correctedAnswer, correctedResult, { recover: true });
+  correctedReport.review.recovery = draftCorrection;
+  await write(correctedAnswer.reviewPath, correctedReport);
+  assert.equal(JSON.parse(cli(['finish', 'plan']).stdout).verification.stage, 'plan');
+
   const values = join(temp, 'observations.json');
   await write(values, { PLAN: true });
   run(bin, ['judge', oraclePath, 'plan', values], install, 0);
@@ -537,6 +571,7 @@ console.log(JSON.stringify(claims.map(claim => ({
   console.log('계획·시험 누락, --no-verify 커밋, 잘못된 관측, 바뀐 스테이징·정본·시험 기록과 미설치 훅, 시험 없는 fast-forward 거부 확인');
   console.log('검증한 커밋·병합·종료 보고, 재독 후 실패 보고와 단순 질문 보고 통과');
   console.log('동선 누락·이전 후보·근거 바꿔치기·과장 보고·후속 교정 누락 차단 및 수동 근거 독립 판정 확인');
+  console.log('두 표현의 초안·종료 차단, 기존 통과 기록 폐기와 재독 강제 확인');
 } finally {
   await rm(temp, { recursive: true, force: true });
 }

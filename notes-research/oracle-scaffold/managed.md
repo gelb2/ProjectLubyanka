@@ -90,3 +90,7 @@ Docker 시험은 로컬 이미지의 ID를 고정하고 호스트 마운트와 �
 `methodAudit`와 `methodReview`를 등록한 프로젝트는 `lubyanka audit <Git 루트>`로 문서·정답지를 검산할 수 있다. `verify` 각 단계도 이 검사를 실행한다. 검산 기준은 `version: 1`, `requirements`, `incidents`를 갖는다. 요구마다 `id`, 독립 근거 `basis`, 승인한 규칙 서술 `approved`, 실제 합격·탈락 입력 `accept`와 `reject`를 등록한다. 수동 판정은 독립 검토기의 조건을 따른다. 자아비판 사건은 `path`, `requirement`, `reason`, `technicalCause`, `correction`, `verification`에 원문과 연결한다. 독립 검토기는 `{oracle, critique, contract, basis}`를 받아 출처의 실제 의미와 실행 코드를 대조하고 `{accepted, reasons}`를 응답한다. 시나리오 원장, 검산 기준, 독립 검토기는 통합 브랜치에 둔다.
 
 프로젝트 고유의 검토가 호스트 자료를 읽어야 한다면 `selfCritiqueFollowup`에 로컬 종료 확장을 등록할 수 있다. 통합 브랜치의 `checkSources`에 확장과 그 의존 소스를 함께 등록한다. 종료 직전에 후보와 작업 폴더의 소스가 일치할 때만 확장의 `requireFollowup(root, state, review, docs)` 함수를 호출한다. 독립 Docker 검토도 계속 실행한다.
+
+## 0.3.1 보고 초안 재검증
+
+`lubyanka review-draft <Git 루트> <초안.txt>`는 사용자가 지정한 두 표현인 “근거는 없습니다”, “철회합니다”를 검사한다. 하나라도 발견하면 기존 단계의 통과 기록을 비우고, 초안 지문과 감지한 표현을 Git 관리 영역에 저장한다. `begin --resume`부터 전문 재독·이유와 기술 원인 기록·실제 교정 및 재시험이 필요하다. `finish`도 `review.draft`와 사용자에게 전달하는 결론·요약 필드를 같은 규칙으로 검사한다. 호스트는 외부로 보낼 실제 초안을 `review-draft`에 전달한다.

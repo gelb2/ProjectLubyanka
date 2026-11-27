@@ -13,6 +13,7 @@ import { executeScenarioGate } from './sharashka.mjs';
 
 const procedure = 'LUBYANKA-ORACLE.md';
 const reread = '자아비판문 전문을 다시 읽고 begin부터 시작하세요.';
+const reconsiderPhrases = ['근거는 없습니다', '철회합니다'];
 
 function oracleIssues(name, content) {
   return findUnresolved(json(content, name));
@@ -48,7 +49,7 @@ function isTestedMerge(root, receipt, commit) {
 async function current(root, directory) {
   const docs = await readProject(root);
   const state = await loadState(directory);
-  if (state.root !== root || !isDeepStrictEqual(state.hashes, docs.hashes) || state.failed) {
+  if (state.root !== root || !isDeepStrictEqual(state.hashes, docs.hashes) || state.failed || state.draftFailure) {
     throw new Error(`필수 문서가 바뀌었거나 시험을 통과하지 못했습니다. ${reread}`);
   }
   return { docs, state };
@@ -79,10 +80,17 @@ export async function begin(root, requestFile, { kind = 'development', resume = 
       }
       reviewPath = prior.reviewPath;
       previousFailure = prior.failed || prior.previousFailure;
-      recoveryRequired ||= Boolean(previousFailure || prior.recoveryRequired);
+      if (prior.draftFailure) {
+        const filename = `draft-recheck-${prior.task}.json`;
+        if (prior.draftFailure.filename !== filename ||
+            hash(await readFile(join(directory, filename))) !== prior.draftFailure.evidenceHash) {
+          throw new Error('보고 초안의 재검증 근거가 바뀌었습니다.');
+        }
+      }
+      recoveryRequired ||= Boolean(previousFailure || prior.draftFailure || prior.recoveryRequired);
     } else {
       if (prior?.root === root && prior.kind === kind && prior.instruction.trim() === instruction.trim() &&
-          (prior.failed || prior.previousFailure || (prior.recoveryRequired && !prior.finished))) {
+          (prior.failed || prior.draftFailure || prior.previousFailure || (prior.recoveryRequired && !prior.finished))) {
         throw new Error('같은 요청의 미해결 검증 기록이 있습니다. begin --resume으로 이어 가세요.');
       }
       const paths = await resolveDocuments(root, docs.config.oracle, docs.config.selfCritique, procedure);
@@ -93,6 +101,29 @@ export async function begin(root, requestFile, { kind = 'development', resume = 
       hashes: docs.hashes, reviewPath, receipts: {}, previousFailure, recoveryRequired,
     });
     return { task, instruction, selfCritique: docs.critique, contract: docs.contract, oracle: docs.oracle, unresolved, reviewPath };
+  });
+}
+
+async function checkDraft(directory, state, texts) {
+  const draft = texts.filter(hasText).join('\n').normalize('NFKC').replace(/\s+/g, ' ');
+  const triggers = reconsiderPhrases.filter(phrase => draft.includes(phrase));
+  if (!triggers.length) return { status: 'clear' };
+  const failure = { task: state.task, draftHash: hash(draft), triggers };
+  const filename = `draft-recheck-${state.task}.json`;
+  const evidenceHash = await save(directory, filename, failure);
+  await save(directory, 'task.json', {
+    ...state, receipts: {}, draftFailure: { filename, evidenceHash }, finished: undefined,
+  });
+  return { status: 'fail', evidence: join(directory, filename), next: reread };
+}
+
+export async function reviewDraft(root, file) {
+  const directory = stateDir(root);
+  return withLock(directory, async () => {
+    const { state } = await current(root, directory);
+    const { content } = await readRegularFile(file, '보고 초안');
+    if (!hasText(content.toString('utf8'))) throw new Error('보고 초안이 비어 있습니다.');
+    return checkDraft(directory, state, [content.toString('utf8')]);
   });
 }
 
@@ -356,6 +387,14 @@ export async function finish(root, stage) {
     if (!hasText(review.review?.instruction) || review.review.instruction.trim() !== state.instruction.trim()) {
       throw new Error('종료 기록은 현재 사용자 지시 원문과 일치해야 합니다.');
     }
+    const fields = review.review;
+    const draft = await checkDraft(directory, state, [
+      fields.draft, fields.codeReview?.argument, fields.codeReview?.verification, fields.codeReview?.reread, fields.codeReview?.source,
+      fields.oracle?.summary, fields.oracle?.evidence, fields.selfCritique?.summary, fields.selfCritique?.evidence,
+      ...(Array.isArray(fields.remaining) ? fields.remaining : []),
+      ...(Array.isArray(fields.claims) ? fields.claims.map(claim => claim?.statement) : []),
+    ]);
+    if (draft.status === 'fail') throw new Error(`보고 초안을 다시 검증해야 합니다. ${reread}`);
     if (review.review?.codeReview?.result === 'no-fix-found' && !state.resumed) {
       throw new Error('고칠 코드가 없어 보이면 begin --resume으로 전문을 다시 읽고 재검증하세요.');
     }

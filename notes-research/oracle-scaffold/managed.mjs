@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { readFile, realpath } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { evaluateOracle } from './engine.mjs';
-import { audit, begin, finish, guardCommit, guardReferences, permit, plan, verify } from './gate.mjs';
+import { audit, begin, finish, guardCommit, guardReferences, permit, plan, reviewDraft, verify } from './gate.mjs';
 import { installHooks } from './hooks.mjs';
 import { command } from './lab.mjs';
 import { adopt, json } from './project.mjs';
@@ -45,6 +45,7 @@ async function main() {
   if (action === 'begin' && arg && !source) return report(await begin(root, arg, values));
   if (action === 'permit' && arg && !source) return report(await permit(root, arg));
   if (action === 'plan' && arg && !source) return report(await plan(root, arg));
+  if (action === 'review-draft' && arg && !source) return report(await reviewDraft(root, arg));
   if (action === 'verify' && arg && (!source || arg === 'merge')) {
     return report(await verify(root, arg, source, { manualFile: values['manual-file'], scenarioFile: values['scenario-file'] }));
   }
@@ -54,6 +55,7 @@ async function main() {
     'lubyanka begin <Git 루트> <사용자 지시 파일> [--kind answer|development] [--resume]',
     'lubyanka plan <Git 루트> <계획 JSON>',
     'lubyanka permit <Git 루트> <작업 ID>',
+    'lubyanka review-draft <Git 루트> <사용자에게 보낼 초안.txt>',
     'lubyanka verify <Git 루트> <plan|feature|merge> [병합할 브랜치] [--manual-file 증거.json] [--scenario-file 실측.json]',
     'lubyanka finish <Git 루트> <plan|feature|merge|failure>',
     'lubyanka judge <정답지 JSON> <plan|feature|merge> <실측 JSON>',
