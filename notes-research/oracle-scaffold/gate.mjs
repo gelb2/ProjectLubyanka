@@ -5,8 +5,11 @@ import { isDeepStrictEqual } from 'node:util';
 import { evaluateOracle, findUnresolved, phases, rulesForPhase } from './engine.mjs';
 import { command, git, gitText, imageId, runLab } from './lab.mjs';
 import { requireHooks } from './hooks.mjs';
-import { finish as documentReport, resolveDocuments, start } from './lifecycle.mjs';
+import { finish as documentReport, readRegularFile, resolveDocuments, start } from './lifecycle.mjs';
 import { configName, hasText, hash, json, loadState, readProject, save, stateDir, withLock } from './project.mjs';
+import { checkFinishExtension, checkHarness, reportPolicy, verifyReport } from './report.mjs';
+import { auditMethod } from './method-audit.mjs';
+import { executeScenarioGate } from './sharashka.mjs';
 
 const procedure = 'LUBYANKA-ORACLE.md';
 const reread = '자아비판문 전문을 다시 읽고 begin부터 시작하세요.';
@@ -15,8 +18,13 @@ function oracleIssues(name, content) {
   return findUnresolved(json(content, name));
 }
 
-function integration(root, docs) {
-  return gitText(root, ['rev-parse', '--verify', `refs/heads/${docs.config.integrationBranch}^{commit}`]);
+function integration(root, docs, optional = false) {
+  const args = ['rev-parse', '--verify', `refs/heads/${docs.config.integrationBranch}^{commit}`];
+  if (optional) {
+    const result = command('git', args, root);
+    return result.status === 0 ? result.stdout.toString().trim() : null;
+  }
+  return gitText(root, args);
 }
 
 function head(root) {
@@ -57,9 +65,12 @@ export async function begin(root, requestFile, { kind = 'development', resume = 
     const task = randomUUID();
     let reviewPath = join(directory, `review-${task}.json`);
     let previousFailure;
+    let recoveryRequired = kind === 'development' && instruction.includes('자아비판');
+    const prior = await readFile(join(directory, 'task.json')).then(bytes => json(bytes, '작업 상태'), error => {
+      if (error.code !== 'ENOENT') throw error;
+    });
     if (resume) {
-      const prior = await loadState(directory);
-      if (prior.instruction !== instruction || prior.kind !== kind || prior.root !== root) {
+      if (prior?.instruction.trim() !== instruction.trim() || prior.kind !== kind || prior.root !== root) {
         throw new Error('이어받을 사용자 지시 또는 작업 종류가 다릅니다.');
       }
       const review = json(await readFile(prior.reviewPath), '작업 검토');
@@ -68,12 +79,18 @@ export async function begin(root, requestFile, { kind = 'development', resume = 
       }
       reviewPath = prior.reviewPath;
       previousFailure = prior.failed || prior.previousFailure;
+      recoveryRequired ||= Boolean(previousFailure || prior.recoveryRequired);
     } else {
+      if (prior?.root === root && prior.kind === kind && prior.instruction.trim() === instruction.trim() &&
+          (prior.failed || prior.previousFailure || (prior.recoveryRequired && !prior.finished))) {
+        throw new Error('같은 요청의 미해결 검증 기록이 있습니다. begin --resume으로 이어 가세요.');
+      }
       const paths = await resolveDocuments(root, docs.config.oracle, docs.config.selfCritique, procedure);
       await start(root, paths, reviewPath, new Set(), oracleIssues, { quiet: true });
     }
     await save(directory, 'task.json', {
-      root, task, kind, resumed: resume, instruction, head: head(root), hashes: docs.hashes, reviewPath, receipts: {}, previousFailure,
+      root, task, kind, resumed: resume, instruction, head: head(root), baseline: integration(root, docs, true),
+      hashes: docs.hashes, reviewPath, receipts: {}, previousFailure, recoveryRequired,
     });
     return { task, instruction, selfCritique: docs.critique, contract: docs.contract, oracle: docs.oracle, unresolved, reviewPath };
   });
@@ -86,7 +103,8 @@ export async function plan(root, planFile) {
     if (docs.contract.content.includes('<!-- lubyanka-contract-pending -->')) {
       throw new Error('프로젝트 정본에 사용자 요구와 보존 범위를 기입하고 전문을 다시 읽으세요.');
     }
-    for (const phase of state.kind === 'answer' ? ['plan'] : phases) rulesForPhase(docs.manifest, phase);
+    if (!state.baseline) throw new Error('통합 브랜치를 준비하고 현재 지시로 다시 시작하세요.');
+    for (const phase of state.kind === 'answer' ? ['plan'] : phases) reportPolicy(root, docs, state.baseline, phase);
     const proposal = json(await readFile(planFile), '실행 계획');
     const rules = state.kind === 'answer' ? rulesForPhase(docs.manifest, 'plan') : docs.manifest.requirements;
     const required = new Set(rules.map(rule => rule.requirementId));
@@ -122,10 +140,12 @@ async function receiptFor(directory, state, phase) {
   const filename = `evidence-${state.task}-${phase}.json`;
   if (!receipt || receipt.filename !== filename) throw new Error(`${phase} 시험의 통과 기록이 없습니다.`);
   const content = await readFile(join(directory, filename));
-  if (hash(content) !== receipt.evidenceHash || json(content, filename).verdict?.status !== 'pass') {
+  const evidence = json(content, filename);
+  if (hash(content) !== receipt.evidenceHash || evidence.task !== state.task || evidence.phase !== phase ||
+      evidence.tree !== receipt.tree || evidence.verdict?.status !== 'pass') {
     throw new Error(`${phase} 시험 기록이 바뀌었습니다. 다시 검증하세요.`);
   }
-  return receipt;
+  return { ...receipt, evidence };
 }
 
 async function featureEvidence(root, directory, state, source) {
@@ -151,12 +171,21 @@ async function candidate(root, directory, phase, state, docs, source) {
   }
   if (!hasText(source) || source.startsWith('-')) throw new Error('병합할 기능 브랜치 또는 커밋을 지정하세요.');
   const target = integration(root, docs);
+  if (target !== state.baseline) throw new Error(`통합 기준이 바뀌었습니다. ${reread}`);
   const commit = gitText(root, ['rev-parse', '--verify', `${source}^{commit}`]);
   await featureEvidence(root, directory, state, commit);
   return { tree: gitText(root, ['merge-tree', '--write-tree', target, commit]), target, source: commit };
 }
 
-export async function verify(root, phase, source) {
+export async function audit(root) {
+  const docs = await readProject(root);
+  const baseline = integration(root, docs);
+  const result = auditMethod(root, docs, baseline, gitText(root, ['write-tree']), imageId(root, docs.config.image));
+  if (!result) throw new Error('통합 브랜치에 문서와 정답지 검토 기준을 연결하세요.');
+  return result;
+}
+
+export async function verify(root, phase, source, { manualFile, scenarioFile } = {}) {
   if (!phases.includes(phase)) throw new Error('시험 단계는 plan, feature, merge 중 하나여야 합니다.');
   const directory = stateDir(root);
   return withLock(directory, async () => {
@@ -171,7 +200,10 @@ export async function verify(root, phase, source) {
       const checks = docs.config.checks?.[phase];
       if (!Array.isArray(checks) || checks.length === 0) throw new Error(`${phase} 단계의 시험 명령을 설정하세요.`);
       confirmTreeDocs(root, snapshot.tree, state.hashes);
+      checkHarness(root, docs, state.baseline, phase, snapshot.tree);
       evidence.image = imageId(root, docs.config.image);
+      evidence.methodAudit = auditMethod(root, docs, state.baseline, snapshot.tree, evidence.image);
+      if (evidence.methodAudit?.status === 'fail') throw new Error(evidence.methodAudit.issues.join('\n'));
       if (phase === 'plan') {
         const baseline = treeOf(root, state.head);
         const baselineConfig = json(git(root, ['show', `${baseline}:${configName}`]), configName);
@@ -202,7 +234,24 @@ export async function verify(root, phase, source) {
       }
       const latest = await readProject(root);
       if (!isDeepStrictEqual(state.hashes, latest.hashes)) throw new Error('실행 중 정본문서나 정답지가 바뀌었습니다.');
-      evidence.verdict = evaluateOracle(docs.manifest, phase, observations);
+      const verdict = evaluateOracle(docs.manifest, phase, observations);
+      if (manualFile) {
+        const { content } = await readRegularFile(manualFile, '수동 검토 증거');
+        evidence.manual = await verifyReport(root, docs, state, json(content, '수동 검토 증거'),
+          { ...evidence, verdict }, { manual: true });
+        const approved = new Set(evidence.manual.claims.map(claim => claim.id));
+        verdict.results = verdict.results.map(row => approved.has(row.id)
+          ? { id: row.id, status: 'pass', reason: '독립 검토기의 원본 증거 판정' } : row);
+        verdict.status = verdict.results.some(row => row.status === 'fail') ? 'fail' :
+          verdict.results.some(row => row.status === 'pending') ? 'pending' : 'pass';
+      }
+      evidence.scenarios = await executeScenarioGate(root, docs, state, phase, snapshot.tree, evidence.image, scenarioFile);
+      if (evidence.scenarios?.status === 'fail' || (evidence.scenarios?.status === 'pending' && verdict.status !== 'fail')) {
+        verdict.status = evidence.scenarios.status;
+        verdict.reason = evidence.scenarios.results.filter(row => row.status !== 'pass')
+          .map(row => `${row.id} · ${row.reason ?? row.status}`).join('\n');
+      }
+      evidence.verdict = verdict;
     } catch (error) {
       evidence.verdict = { status: 'fail', reason: error.message };
     }
@@ -232,6 +281,7 @@ export async function permit(root, task) {
 export async function guardCommit(root, protectedBranch) {
   const directory = stateDir(root);
   const { docs, state } = await current(root, directory);
+  await requireHooks(root, directory);
   const branch = gitText(root, ['symbolic-ref', '--short', 'HEAD']);
   if (protectedBranch !== docs.config.integrationBranch) throw new Error('설치된 훅과 통합 브랜치 설정이 다릅니다.');
   if (branch === protectedBranch) throw new Error('통합 브랜치는 검증한 후보를 병합해 갱신하세요.');
@@ -261,6 +311,7 @@ export async function guardReferences(root, protectedBranch, text) {
     const old = existing ? existing.stdout.toString().trim() : previous;
     const directory = stateDir(root);
     const { state, docs } = await current(root, directory);
+    await requireHooks(root, directory);
     if (protectedBranch !== docs.config.integrationBranch) throw new Error('설치된 훅과 통합 브랜치 설정이 다릅니다.');
     if (!target) {
       const receipt = await receiptFor(directory, state, 'feature');
@@ -289,7 +340,10 @@ async function failureReport(directory, state) {
   const ran = [...evidence.checks, evidence.planReview].some(item =>
     Number.isInteger(item?.exitCode) && item.exitCode >= 0 && item.exitCode < 125);
   if (!ran || !['fail', 'pending'].includes(evidence.verdict?.status)) throw new Error('실제 시험 실패가 관측되지 않았습니다.');
-  return { stage: failure.phase, status: evidence.verdict.status, previousTask: failure.task, tree: evidence.tree, sharashka: path };
+  return {
+    evidence,
+    summary: { stage: failure.phase, status: evidence.verdict.status, previousTask: failure.task, tree: evidence.tree, sharashka: path },
+  };
 }
 
 export async function finish(root, stage) {
@@ -297,19 +351,21 @@ export async function finish(root, stage) {
   return withLock(directory, async () => {
     const { docs, state } = await current(root, directory);
     if (state.kind === 'development') await requireHooks(root, directory);
-    const review = json(await readFile(state.reviewPath), '작업 검토');
+    const { content } = await readRegularFile(state.reviewPath, '작업 검토');
+    const review = json(content, '작업 검토');
     if (!hasText(review.review?.instruction) || review.review.instruction.trim() !== state.instruction.trim()) {
       throw new Error('종료 기록은 현재 사용자 지시 원문과 일치해야 합니다.');
-    }
-    if (stage === 'failure') {
-      return documentReport(root, state.reviewPath, true, procedure, oracleIssues, await failureReport(directory, state));
     }
     if (review.review?.codeReview?.result === 'no-fix-found' && !state.resumed) {
       throw new Error('고칠 코드가 없어 보이면 begin --resume으로 전문을 다시 읽고 재검증하세요.');
     }
     const allowed = state.kind === 'answer' ? ['plan'] : ['feature', 'merge'];
-    if (!allowed.includes(stage)) throw new Error('작업 종류에 해당하는 완료 보고 단계를 지정하세요.');
-    const result = await receiptFor(directory, state, stage);
+    const failed = stage === 'failure';
+    if (!failed && !allowed.includes(stage)) throw new Error('작업 종류에 해당하는 완료 보고 단계를 지정하세요.');
+    if (!failed && review.review?.codeReview?.result === 'pending') {
+      throw new Error('코드 확인을 끝내고 현재 후보에서 재검증하세요.');
+    }
+    const result = failed ? await failureReport(directory, state) : await receiptFor(directory, state, stage);
     if (stage === 'plan' && (head(root) !== result.parent || gitText(root, ['write-tree']) !== result.tree)) {
       throw new Error('답변에서 검증한 후보가 바뀌었습니다.');
     }
@@ -323,8 +379,22 @@ export async function finish(root, stage) {
         throw new Error('시험한 병합 후보를 통합 브랜치에서 확인할 수 없습니다.');
       }
     }
-    await documentReport(root, state.reviewPath, true, procedure, oracleIssues, {
-      stage, tree: result.tree, sharashka: join(directory, result.filename),
-    });
+    if (stage !== 'merge' && integration(root, docs) !== state.baseline) {
+      throw new Error(`통합 기준이 바뀌었습니다. ${reread}`);
+    }
+    const report = await verifyReport(root, docs, state, review.review, result.evidence, { failed });
+    const extension = await checkFinishExtension(root, directory, docs, state, review.review, result.evidence.phase, result.evidence.tree);
+    const latest = await readProject(root);
+    if (!isDeepStrictEqual(state.hashes, latest.hashes)) throw new Error('종료 검토 중 정본이 바뀌었습니다.');
+    if (stage === 'merge' ? !isTestedMerge(root, result, integration(root, latest)) :
+        !failed && (result.tree !== gitText(root, ['write-tree']) || integration(root, latest) !== state.baseline)) {
+      throw new Error('종료 검토 중 보고 후보가 바뀌었습니다.');
+    }
+    const summary = failed ? result.summary : { stage, tree: result.tree, sharashka: join(directory, result.filename) };
+    const approved = await documentReport(root, state.reviewPath, true, procedure, oracleIssues, { ...summary, report, extension }, review);
+    await save(directory, `report-${state.task}-${stage}.json`, approved);
+    if (!failed) await save(directory, 'task.json', { ...state, finished: stage });
+    console.log(JSON.stringify(approved, null, 2));
+    if (failed) return summary.status === 'pending' ? 2 : 1;
   });
 }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { readFile, realpath } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { evaluateOracle } from './engine.mjs';
-import { begin, finish, guardCommit, guardReferences, permit, plan, verify } from './gate.mjs';
+import { audit, begin, finish, guardCommit, guardReferences, permit, plan, verify } from './gate.mjs';
 import { installHooks } from './hooks.mjs';
 import { command } from './lab.mjs';
 import { adopt, json } from './project.mjs';
@@ -23,10 +23,16 @@ async function main() {
 
   const { positionals, values } = parseArgs({
     allowPositionals: true,
-    options: { resume: { type: 'boolean' }, kind: { type: 'string' } },
+    options: {
+      resume: { type: 'boolean' }, kind: { type: 'string' },
+      'manual-file': { type: 'string' }, 'scenario-file': { type: 'string' },
+    },
   });
   const [action, path, arg, source, ...extra] = positionals;
-  if (!path || extra.length || (action !== 'begin' && (values.resume || values.kind))) throw new Error('lubyanka 사용법을 확인하세요.');
+  if (!path || extra.length || (action !== 'begin' && (values.resume || values.kind)) ||
+      (action !== 'verify' && (values['manual-file'] !== undefined || values['scenario-file'] !== undefined))) {
+    throw new Error('lubyanka 사용법을 확인하세요.');
+  }
   if (action === 'judge' && arg && source) {
     const manifest = json(await readFile(path), '정답지');
     const observations = json(await readFile(source), '실측');
@@ -34,18 +40,21 @@ async function main() {
   }
   const root = await realpath(path);
   if (action === 'adopt' && !arg) return report(await adopt(root));
+  if (action === 'audit' && !arg) return report(await audit(root));
   if (action === 'install-hooks' && !arg) return report(await installHooks(root));
   if (action === 'begin' && arg && !source) return report(await begin(root, arg, values));
   if (action === 'permit' && arg && !source) return report(await permit(root, arg));
   if (action === 'plan' && arg && !source) return report(await plan(root, arg));
-  if (action === 'verify' && arg && (!source || arg === 'merge')) return report(await verify(root, arg, source));
+  if (action === 'verify' && arg && (!source || arg === 'merge')) {
+    return report(await verify(root, arg, source, { manualFile: values['manual-file'], scenarioFile: values['scenario-file'] }));
+  }
   if (action === 'finish' && arg && !source) return finish(root, arg);
   throw new Error([
-    'lubyanka <adopt|install-hooks> <Git 루트>',
+    'lubyanka <adopt|audit|install-hooks> <Git 루트>',
     'lubyanka begin <Git 루트> <사용자 지시 파일> [--kind answer|development] [--resume]',
     'lubyanka plan <Git 루트> <계획 JSON>',
     'lubyanka permit <Git 루트> <작업 ID>',
-    'lubyanka verify <Git 루트> <plan|feature|merge> [병합할 브랜치]',
+    'lubyanka verify <Git 루트> <plan|feature|merge> [병합할 브랜치] [--manual-file 증거.json] [--scenario-file 실측.json]',
     'lubyanka finish <Git 루트> <plan|feature|merge|failure>',
     'lubyanka judge <정답지 JSON> <plan|feature|merge> <실측 JSON>',
   ].join('\n'));

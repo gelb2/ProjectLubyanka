@@ -1,6 +1,6 @@
 {
   "name": "lubyanka-oracle-scaffold",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "description": "루비얀카와 샤라시카의 실행 정답지, 격리 시험과 Git 검증 도구",
   "license": "UNLICENSED",
   "publishConfig": {
@@ -22,6 +22,9 @@
     "project.mjs",
     "lab.mjs",
     "gate.mjs",
+    "report.mjs",
+    "method-audit.mjs",
+    "sharashka.mjs",
     "hooks.mjs",
     "managed.md"
   ],

@@ -17,6 +17,7 @@ const defaultConfig = {
   selfCritique: 'LUBYANKA-SELF-CRITIQUE.md',
   pathCritiques: [],
   reviewPlan: [],
+  reportReview: [],
   checks: { plan: [], feature: [], merge: [] },
 };
 
@@ -82,7 +83,7 @@ async function agents(root) {
       '', managedMarker, '## 루비얀카와 샤라시카',
       '모든 지시·질문에서 `lubyanka begin`이 전달한 자아비판문 전문과 정본문서·정답지를 읽는다.',
       '계획을 세우고 `plan`과 `verify plan`을 통과한 뒤 구현한다. 커밋 전 `verify feature`, 병합 전 `verify merge`를 실행한다.',
-      '완료·실패 보고에는 `finish`에서 확인한 실제 시험 기록이 필요하다. 미통과나 문서 변경 때 전문을 재독한다.', '',
+      '보고 전에 직접 수정·재검증한다. `finish`에서 현재 후보의 주장·원본 증거·독립 판정을 확인한다. 미통과나 문서 변경 때 전문을 재독한다.', '',
     ].join('\n'));
   } finally {
     await handle.close();
@@ -113,7 +114,9 @@ export async function readProject(root) {
     getDoc(root, 'AGENTS.md'), getDoc(root, config.contract), getDoc(root, config.oracle),
     ...[config.selfCritique, ...config.pathCritiques].map(path => getDoc(root, path)),
   ]);
-  const all = [file, instructions, contract, oracle, ...critique];
+  const policies = await Promise.all([config.methodAudit, config.scenarioInventory]
+    .filter(path => path !== undefined).map(path => getDoc(root, path)));
+  const all = [file, instructions, contract, oracle, ...critique, ...policies];
   if (new Set(all.map(item => item.path)).size !== all.length) throw new Error('필수 문서는 각기 다른 파일이어야 합니다.');
   if (!instructions.content.includes(managedMarker)) throw new Error('AGENTS.md의 루비얀카 절차를 복구하세요.');
   return {

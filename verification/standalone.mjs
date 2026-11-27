@@ -34,7 +34,8 @@ try {
   ], source, 0).stdout)[0];
   assert.deepEqual(tarball.files.map(entry => entry.path).sort(), [
     'README.md', 'engine.mjs', 'gate.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
-    'managed.mjs', 'oracle.mjs', 'package.json', 'procedure.md', 'project.mjs', 'self-critique.md',
+    'managed.mjs', 'method-audit.mjs', 'oracle.mjs', 'package.json', 'procedure.md', 'project.mjs',
+    'report.mjs', 'self-critique.md', 'sharashka.mjs',
   ]);
   run('npm', [
     'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', join(workspace, tarball.filename),

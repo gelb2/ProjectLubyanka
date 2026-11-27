@@ -22,7 +22,7 @@ export function gitText(root, args) {
   return git(root, args).toString().trim();
 }
 
-function sourceArchive(root, tree, directory) {
+function sourceArchive(root, tree, directory, reportInput) {
   const entries = git(root, ['ls-tree', '-r', '-z', tree]).toString().split('\0');
   if (entries.some(entry => entry.startsWith('160000 '))) {
     throw new Error('Git 서브모듈의 실행 내용은 이 후보 트리에 없습니다.');
@@ -42,6 +42,10 @@ function sourceArchive(root, tree, directory) {
   writeFileSync(join(bare, 'objects', 'info', 'alternates'), objects + '\n');
   const output = openSync(archive, 'wx', 0o600);
   try {
+    if (reportInput) {
+      writeFileSync(output, `${reportInput.length}\n`);
+      writeFileSync(output, reportInput);
+    }
     const result = command('git', ['--git-dir', bare, 'archive', '--format=tar', tree], directory, {
       env, stdio: ['ignore', output, 'pipe'],
     });
@@ -64,7 +68,7 @@ export function imageId(root, image) {
   return id;
 }
 
-export function runLab(root, tree, image, args, planInput) {
+export function runLab(root, tree, image, args, planInput, { reportInput } = {}) {
   if (!/^[a-zA-Z0-9][a-zA-Z0-9./:@_-]{0,255}$/.test(image) ||
       !Array.isArray(args) || args.length === 0 ||
       !args.every(arg => typeof arg === 'string' && arg.length > 0 && !arg.includes('\0')) ||
@@ -75,7 +79,12 @@ export function runLab(root, tree, image, args, planInput) {
   const name = `lubyanka-${randomUUID()}`;
   let archive;
   try {
-    archive = sourceArchive(root, tree, directory);
+    const report = reportInput === undefined ? null : Buffer.from(JSON.stringify(reportInput));
+    if (report && report.length > 20 * 1024 * 1024) throw new Error('종료 검토 입력이 20 MiB를 넘습니다.');
+    archive = sourceArchive(root, tree, directory, report);
+    const setup = report
+      ? 'IFS= read -r bytes && head -c "$bytes" > /tmp/lubyanka-report.json && tar -xf - -C /work && cd /work && exec "$@" < /tmp/lubyanka-report.json'
+      : 'tar -xf - -C /work && cd /work && exec "$@"';
     const result = command('docker', [
       'run', '--rm', '-i', '--name', name, '--pull=never', '--network=none', '--read-only',
       '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit=128',
@@ -83,7 +92,7 @@ export function runLab(root, tree, image, args, planInput) {
       '--tmpfs=/work:rw,exec,mode=1777,size=128m', '--tmpfs=/tmp:rw,mode=1777,size=32m',
       '--env=HOME=/tmp', ...(planInput ? ['--env=LUBYANKA_PLAN_JSON'] : []),
       '--entrypoint=/bin/sh', image,
-      '-c', 'tar -xf - -C /work && cd /work && exec "$@"', 'lubyanka', ...args,
+      '-c', setup, 'lubyanka', ...args,
     ], root, {
       stdio: [archive, 'pipe', 'pipe'], maxBuffer: 2 * 1024 * 1024,
       env: planInput ? { ...process.env, LUBYANKA_PLAN_JSON: JSON.stringify(planInput) } : process.env,
