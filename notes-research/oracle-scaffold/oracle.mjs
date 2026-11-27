@@ -1,15 +1,13 @@
 #!/usr/bin/env node
-import { readFile, realpath, stat, writeFile } from 'node:fs/promises';
+import { lstat, readFile, realpath, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { findUnresolved } from './engine.mjs';
 import { finish, readRegularFile, resolveDocument, resolveDocuments, start } from './lifecycle.mjs';
 
 const manifestName = 'lubyanka-oracle.json';
 const procedureName = 'LUBYANKA-ORACLE.md';
 const critiqueName = 'LUBYANKA-SELF-CRITIQUE.md';
-const comparators = ['exact', 'range', 'invariant', 'relation', 'manual'];
-const requiredText = ['requirementId', 'source', 'scope', 'inputs', 'expectedOrRule'];
-
 const initialManifest = {
   schemaVersion: 1,
   requirements: [{
@@ -53,50 +51,6 @@ async function init(root, documents, log) {
     log(`${isNew ? '생성' : '기존 경로 보존'} ${name}`);
   }
   return created;
-}
-
-function nonEmptyText(value) {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-function isTextList(value) {
-  return Array.isArray(value) && value.every(nonEmptyText);
-}
-
-function findUnresolved(manifest) {
-  if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.requirements)) {
-    throw new Error('schemaVersion은 1, requirements는 배열이어야 합니다.');
-  }
-  if (manifest.requirements.length === 0) return ['요구 항목이 없습니다.'];
-
-  const issues = [];
-  const ids = new Set();
-  for (const [index, rule] of manifest.requirements.entries()) {
-    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
-      throw new Error(`${index + 1}번째 요구 항목은 객체여야 합니다.`);
-    }
-    const id = nonEmptyText(rule.requirementId) ? rule.requirementId.trim() : null;
-    const label = id ?? `${index + 1}번째 항목`;
-    if (id !== null && ids.has(id)) throw new Error(`중복 요구 ID ${id}`);
-    if (id !== null) ids.add(id);
-
-    const missing = requiredText.filter(field => !nonEmptyText(rule[field]));
-    if (!comparators.includes(rule.comparator)) missing.push('comparator');
-    if (!isTextList(rule.requiredEvidence) || rule.requiredEvidence.length === 0) {
-      missing.push('requiredEvidence');
-    }
-    if (!isTextList(rule.unresolved)) {
-      throw new Error(`${label}의 unresolved는 빈 문자열이 없는 배열이어야 합니다.`);
-    }
-    if (rule.baseline !== undefined && typeof rule.baseline !== 'string') {
-      throw new Error(`${label}의 baseline은 문자열이어야 합니다.`);
-    }
-    if (missing.length > 0) issues.push(`${label} 필수 항목 미기입 또는 미지원 ${missing.join(', ')}`);
-    if (rule.unresolved.length > 0) {
-      issues.push(`${label} 해결할 항목 ${rule.unresolved.length}개`);
-    }
-  }
-  return issues;
 }
 
 async function check(root, oraclePath) {
@@ -153,7 +107,14 @@ async function main(args) {
   if (!(await stat(root)).isDirectory()) throw new Error('프로젝트 경로는 디렉터리여야 합니다.');
   const oraclePath = values.oracle ?? manifestName;
   if (command === 'check') return check(root, oraclePath);
-  if (command === 'finish') return finish(root, reviewPath, values.json, procedureName, inspectOracle);
+  if (command === 'finish') {
+    const config = await lstat(join(root, 'lubyanka.json')).catch(error => {
+      if (error.code !== 'ENOENT') throw error;
+      return null;
+    });
+    if (config) throw new Error('도입 프로젝트의 종료 검토에는 lubyanka finish와 샤라시카 실행 기록이 필요합니다.');
+    return finish(root, reviewPath, values.json, procedureName, inspectOracle);
+  }
 
   const documents = await resolveDocuments(root, oraclePath, values['self-critique'] ?? critiqueName, procedureName);
   const created = await init(root, documents, command === 'start' ? console.error : console.log);

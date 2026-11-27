@@ -1,13 +1,38 @@
 {
   "name": "lubyanka-oracle-scaffold",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.3.1",
+  "description": "루비얀카와 샤라시카의 실행 정답지, 격리 시험과 Git 검증 도구",
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "bin": {
-    "lubyanka-oracle": "./oracle.mjs"
+    "lubyanka-oracle": "./oracle.mjs",
+    "lubyanka": "./managed.mjs"
   },
-  "files": ["oracle.mjs", "lifecycle.mjs", "procedure.md", "self-critique.md"],
+  "files": [
+    "oracle.mjs",
+    "lifecycle.mjs",
+    "procedure.md",
+    "self-critique.md",
+    "engine.mjs",
+    "managed.mjs",
+    "project.mjs",
+    "lab.mjs",
+    "gate.mjs",
+    "report.mjs",
+    "method-audit.mjs",
+    "sharashka.mjs",
+    "hooks.mjs",
+    "managed.md"
+  ],
   "scripts": {
     "test": "node --test"
+  },
+  "exports": "./engine.mjs",
+  "engines": {
+    "node": ">=20"
   }
 }
