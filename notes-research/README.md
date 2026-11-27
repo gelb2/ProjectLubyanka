@@ -2,6 +2,7 @@
 
 현재 규칙은 [방법론 정본](../governance/LUBYANKA.md)을 따른다.
 
+- [정본 위계와 타 프로젝트 이식 계획](CANON-AND-ADOPTION-PLAN.md)
 - [라이브러리 구성과 흐름](LUBYANKA-LIBRARY-PLAN.md)
 - [npm 구현과 검증 계획](LUBYANKA-SHARASHKA-IMPLEMENTATION-PLAN.md)
 - [정답지 전제와 판정 기준 연구](LUBYANKA-SHARASHKA-ORACLE-RESEARCH.md)
