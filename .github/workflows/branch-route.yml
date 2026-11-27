@@ -1,0 +1,21 @@
+name: Branch route
+on:
+  pull_request:
+    branches: [main, develop]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check promotion source
+        env:
+          BASE: ${{ github.base_ref }}
+          SOURCE: ${{ github.head_ref }}
+          SOURCE_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          case "$BASE" in
+            main) test "$SOURCE" = develop && test "$SOURCE_REPO" = "$REPO" ;;
+            develop) test "$SOURCE" != main && test "$SOURCE" != develop ;;
+          esac

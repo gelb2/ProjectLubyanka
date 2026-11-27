@@ -61,9 +61,8 @@
       "requiredEvidence": [
         "패키지 매니페스트와 오프라인 패키지 검사"
       ],
-      "unresolved": [
-        "공개용 패키지 메타데이터와 실제 배포 경로 미검증"
-      ]
+      "unresolved": [],
+      "baseline": "0.1.1 공식 tarball 13개 파일, SHA-256 245dfd4880848cea256a394332ac6ab505018881518c1a2c87c8a0c70f8844ed"
     },
     {
       "requirementId": "REPORT-01",
@@ -103,6 +102,20 @@
       "requiredEvidence": [
         "API 단위 검사",
         "격리된 설치본의 Git·Docker 실행 기록"
+      ],
+      "unresolved": []
+    },
+    {
+      "requirementId": "PROMOTION-01",
+      "source": "2026-11-28 사용자 지시",
+      "scope": "패키지 브랜치와 공식 npm, 사용 앱",
+      "inputs": "develop에서 통합한 main 후보의 tarball을 새 프로젝트에 설치한다. 공식 npm 파일과 앱 잠금 및 설치 출처를 대조한다.",
+      "comparator": "invariant",
+      "expectedOrRule": "설치·정상·반례 시험이 통과한 main 후보만 공개하며 앱은 같은 공식 버전을 설치한다.",
+      "requiredEvidence": [
+        "main의 부모와 트리",
+        "후보 설치 및 재시험",
+        "공식 배포 파일 integrity와 앱 설치 결과"
       ],
       "unresolved": []
     }

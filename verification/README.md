@@ -52,3 +52,17 @@ Node 20.15.0·22.19.0의 단위·회귀 시험 18개와 설치본의 Docker·Git
 ## 0.3.1 보고 초안 재검증
 
 오프라인 설치본에서 한 문구는 줄바꿈을 넣은 전체 초안으로, 다른 문구는 종료 기록의 코드 검토 문장으로 제출했다. 둘 다 차단하고 통과 기록을 폐기했다. 동일 요청의 새 착수는 거부됐다. 전문 재독 뒤 이유·기술 원인을 기록하고 다시 시험한 결론은 승인됐다.
+
+## main 후보 설치 검증과 npm 공개
+
+피처는 develop에서 분기하고 develop에 병합한다. main에는 develop을 두 번째 부모로 하는 병합 커밋을 만든다. 각 개발 복제본에서 `bash verification/install-branch-guard.sh`로 로컬 참조 검사를 연결한다. 이 저장소의 GitHub 플랜에서는 비공개 브랜치 보호가 403으로 거절됐다. PR 상태 검사 결과와 로컬 차단의 범위를 구분한다.
+
+main을 원격에 반영한 다음 깨끗한 main에서 다음 명령을 실행한다. 인수 없이 실행하면 공개 직전까지 검증한다. 로컬 이미지 태그 조회가 실패하면 실제 이미지 ID를 LUBYANKA_TEST_IMAGE로 지정한다.
+
+```sh
+bash verification/main-release.sh --publish
+```
+
+명령은 원격 main·develop 및 병합 트리를 대조하고 커밋에서 tarball을 한 번 만든다. 단위 시험, 스캐폴드 설치, 지정한 tarball의 빈 프로젝트 설치·공개 API·Docker·Git 정상 및 반례 검사를 실행한다. 공개 직전 참조와 해시를 확인하고 npm에 같은 파일을 제출한다. 공개 후 공식 레지스트리 설치와 integrity를 확인한다. 사용 앱은 정식 버전과 lockfile을 사용하고 개발 사본을 제거한 뒤 npm ci로 다시 설치한다. [npm publish의 tarball 계약](https://docs.npmjs.com/cli/v10/commands/npm-publish/) · [설립·적용 진단](diagnosis-2026-11-28.md)
+
+사용 앱에서 설치를 마친 뒤 패키지 저장소의 `node verification/endpoint-install.mjs <앱 npm 루트>`를 실행한다. 명세·잠금 파일·실제 CLI 경로와 전체 설치 파일을 공식 tarball에 대조한다.
