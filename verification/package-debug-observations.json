@@ -1,0 +1,237 @@
+{
+  "revision": "bcdf93418a29625156af92f1e82e08f7b7091b93",
+  "package": "lubyanka-oracle-scaffold@0.4.0",
+  "scope": {
+    "tracked": 54,
+    "types": {
+      ".yml": 1,
+      "": 2,
+      ".md": 27,
+      ".json": 3,
+      ".mjs": 17,
+      ".sh": 4
+    },
+    "runtime": [
+      "engine.mjs",
+      "gate.mjs",
+      "hooks.mjs",
+      "lab.mjs",
+      "lifecycle.mjs",
+      "managed.mjs",
+      "method-audit.mjs",
+      "oracle.mjs",
+      "project.mjs",
+      "report.mjs",
+      "sharashka.mjs"
+    ],
+    "localLinks": 119,
+    "badLinks": []
+  },
+  "baseline": {
+    "v20.15.0": {
+      "tests": 20,
+      "pass": 20,
+      "fail": 0,
+      "skipped": 0
+    },
+    "v22.19.0": {
+      "tests": 20,
+      "pass": 20,
+      "fail": 0,
+      "skipped": 0
+    },
+    "installedTarball": {
+      "tests": 0,
+      "pass": 0,
+      "fail": 0,
+      "skipped": 0
+    },
+    "standalone": [
+      "오프라인 설치 통과 · lubyanka-oracle-scaffold · 패키지 파일 16개",
+      "init · start · check · finish 실행 확인 · 정상 0 / 미판정 2 / 손상 JSON·스키마 오류 1",
+      "start 출력의 자아비판문 전문 표식 · 없음",
+      "도입 전 문서 전용 finish · 종료 코드 0, 문서 검토 출력 · 미판정 정답지도 동일",
+      "공개 evaluateOracle API import 성공. 기존 명령의 호환 범위를 확인했습니다.",
+      "npm 공개 레지스트리 설정 확인"
+    ],
+    "dockerGit": [
+      "릴리스 후보 lubyanka-oracle-scaffold-0.4.0.tgz의 오프라인 설치와 API import 통과",
+      "기존·빈 프로젝트 도입, 기존 지침과 Git 훅 보존, 자아비판 전문 전달 확인",
+      "배포 제외 속성의 영향을 받지 않는 Docker 계획·기능·병합 시험, 호스트 파일·네트워크 격리, 동시 실행과 정책 차단 검사 통과",
+      "64 MiB 초과 Git 아카이브를 Docker에 전달하고 파일 끝까지 보존 확인",
+      "동일한 인용을 단 계획도 독립 검토에서 적용 근거가 빠지면 거부",
+      "계획·시험 누락, --no-verify 커밋, 잘못된 관측, 바뀐 스테이징·정본·시험 기록과 미설치 훅, 시험 없는 fast-forward 거부 확인",
+      "검증한 커밋·병합·종료 보고, 재독 후 실패 보고와 단순 질문 보고 통과",
+      "동선 누락·이전 후보·근거 바꿔치기·과장 보고·후속 교정 누락 차단 및 수동 근거 독립 판정 확인",
+      "두 표현의 초안·종료 차단, 기존 통과 기록 폐기와 재독 강제 확인"
+    ]
+  },
+  "breakpoints": {
+    "source-api": [
+      {
+        "key": "engine",
+        "fn": "holds",
+        "line": 99,
+        "locals": [
+          "BOUND",
+          2,
+          2
+        ]
+      }
+    ],
+    "source-cli": [
+      {
+        "key": "cli",
+        "fn": "main",
+        "line": 39,
+        "locals": [
+          "judge",
+          "feature",
+          2
+        ]
+      },
+      {
+        "key": "engine",
+        "fn": "holds",
+        "line": 99,
+        "locals": [
+          "BOUND",
+          2,
+          2
+        ]
+      }
+    ],
+    "source-legacy": [
+      {
+        "key": "legacy",
+        "fn": "check",
+        "line": 61,
+        "locals": [
+          1,
+          1
+        ]
+      }
+    ],
+    "installed-api": [
+      {
+        "key": "engine",
+        "fn": "holds",
+        "line": 99,
+        "locals": [
+          "BOUND",
+          2,
+          2
+        ]
+      }
+    ],
+    "installed-cli": [
+      {
+        "key": "cli",
+        "fn": "main",
+        "line": 39,
+        "locals": [
+          "judge",
+          "feature",
+          2
+        ]
+      },
+      {
+        "key": "engine",
+        "fn": "holds",
+        "line": 99,
+        "locals": [
+          "BOUND",
+          2,
+          2
+        ]
+      }
+    ],
+    "installed-legacy": [
+      {
+        "key": "legacy",
+        "fn": "check",
+        "line": 61,
+        "locals": [
+          1,
+          1
+        ]
+      }
+    ]
+  },
+  "temporaryEngineChanges": {
+    "boundaryMutation": {
+      "tests": 4,
+      "pass": 3,
+      "fail": 1,
+      "skipped": 0
+    },
+    "afterRestore": {
+      "tests": 4,
+      "pass": 4,
+      "fail": 0,
+      "skipped": 0
+    },
+    "newRequirementBeforeImplementation": {
+      "tests": 5,
+      "pass": 4,
+      "fail": 1,
+      "skipped": 0
+    },
+    "afterAddingModule": {
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "skipped": 0
+    },
+    "missingModule": [
+      "code: 'ERR_MODULE_NOT_FOUND',"
+    ],
+    "repacked": "오프라인 설치 통과 · lubyanka-oracle-scaffold · 패키지 파일 17개",
+    "installedCli": [
+      {
+        "phase": "feature",
+        "status": "pass",
+        "results": [
+          {
+            "id": "NE",
+            "status": "pass",
+            "observed": [
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "phase": "feature",
+        "status": "fail",
+        "results": [
+          {
+            "id": "NE",
+            "status": "fail",
+            "observed": [
+              2,
+              2
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "temporaryGateChanges": {
+    "missing": "fixture review missing, plan=fail, permit=denied",
+    "present": "fixture review present, plan=pass, permit=allowed"
+  },
+  "existingExtensionPoints": {
+    "scenario-missing": "scenario-missing fail",
+    "scenario-wrong": "scenario-wrong fail",
+    "scenario-valid": "scenario-valid pass",
+    "followup": "Configured finish module threw a distinct error, then gave matching task evidence on the same report."
+  },
+  "diagnostics": {
+    "reviewerFixtureExit": 7,
+    "reviewerFixtureStderr": "FIXTURE_REVIEWER_FAILED_AT_COUNT",
+    "auditExit": 1,
+    "auditStderr": "독립 자아비판·정답 서술 검토 명령에 실패했습니다."
+  }
+}
