@@ -158,6 +158,21 @@ export async function plan(root, planFile) {
   });
 }
 
+// The trusted reviewer supplies these quotations after matching the task to tests.
+function coversInstruction(plan, coverage) {
+  if (!Array.isArray(coverage) || !coverage.length) return false;
+  const decisions = new Set(plan.decisions.map(row => row.id));
+  let remaining = plan.instruction.trim();
+  for (const row of coverage) {
+    if (!hasText(row?.quote) || !Array.isArray(row.ids) || !row.ids.length ||
+        !row.ids.every(id => decisions.has(id))) return false;
+    const quote = row.quote.trim();
+    if (!remaining.startsWith(quote)) return false;
+    remaining = remaining.slice(quote.length).trimStart();
+  }
+  return remaining.length === 0;
+}
+
 function confirmTreeDocs(root, tree, hashes) {
   for (const [path, digest] of Object.entries(hashes)) {
     if (hash(git(root, ['show', `${tree}:${path}`])) !== digest) {
@@ -248,6 +263,9 @@ export async function verify(root, phase, source, { manualFile, scenarioFile } =
         if (!Array.isArray(output?.reasons) || !output.reasons.length || !output.reasons.every(hasText) ||
             output.accepted !== true) {
           throw new Error('독립 검토가 계획 근거의 90% 기준을 충족하지 못했거나 이유가 없습니다.');
+        }
+        if (!coversInstruction(state.plan, output.coverage)) {
+          throw new Error('독립 계획 검토에서 사용자 지시 원문에 대응하는 시험 범위가 빠졌습니다.');
         }
       }
       for (const args of checks) {

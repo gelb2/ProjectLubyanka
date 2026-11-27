@@ -6,10 +6,12 @@
 
 ## 설치
 
+사용 앱은 공식 npm에 공개된 정확한 버전만 설치한다. 잠금 파일의 공식 tarball 주소와 integrity를 확인하고 재설치에는 `npm ci`를 쓴다. 개발 체크아웃·Git 의존성·로컬 tgz·링크·설치 후 패치를 사용한 앱은 도입 판정을 보류한다.
+
 Node.js 20 이상이 필요하다. Git 저장소에 적용할 때는 Git을, 샤라시카를 실행할 때는 Docker와 프로젝트가 지정한 로컬 이미지를 준비한다.
 
 ```sh
-npm install --save-dev --save-exact lubyanka-oracle-scaffold@0.1.1
+npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.4.0
 npm exec -- lubyanka adopt /path/to/git-root
 ```
 

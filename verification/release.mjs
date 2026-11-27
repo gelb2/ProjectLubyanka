@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const src = fileURLToPath(new URL('../notes-research/oracle-scaffold/', import.meta.url));
@@ -35,12 +35,12 @@ const write = (path, data) => writeFile(path, JSON.stringify(data, null, 2) + '\
 const read = async path => JSON.parse(await readFile(path, 'utf8'));
 
 try {
-  const pack = JSON.parse(run('npm', [
+  const archive = process.argv[2] ? resolve(process.argv[2]) : join(temp, JSON.parse(run('npm', [
     'pack', '--offline', '--ignore-scripts', '--json', '--pack-destination', temp,
-  ], src).stdout)[0];
+  ], src).stdout)[0].filename);
   const install = join(temp, 'install');
   await mkdir(install);
-  run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', join(temp, pack.filename)], install);
+  run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', archive], install);
   const bin = join(install, 'node_modules', '.bin', 'lubyanka');
   const legacy = join(install, 'node_modules', '.bin', 'lubyanka-oracle');
   run(process.execPath, ['--input-type=module', '-e',
@@ -163,6 +163,10 @@ const unsupported = proposal.decisions.filter(row =>
   !row.decision.includes(required[row.id]) || !row.reason.includes('실제') || !row.falsifier.includes('폐기'));
 console.log(JSON.stringify({
   accepted: unsupported.length === 0,
+  coverage: proposal.decisions.length === 1
+    ? [{quote: '역할별 승인 규칙이 유지됐나?', ids: ['PLAN']}]
+    : [{quote: '시험 서비스 결과를 갱신하고', ids: ['VERSION']},
+       {quote: '기존 거절 정책을 보존한다.', ids: ['BLOCKED']}],
   reasons: unsupported.length ? unsupported.map(row => row.id + '의 결정을 뒷받침하지 못함') : ['각 결정이 서로 다른 판정과 반증 조건을 설명함'],
 }));
 `);
@@ -245,6 +249,15 @@ console.log(JSON.stringify(output));
     decision: requiredDecisions[item.requirementId],
     reason: '차단이 실제 저장 경로보다 앞서야 한다.', falsifier: '기대 관측과 다르면 계획을 폐기한다.',
   })) };
+  const expandedRequest = join(temp, 'expanded-request.txt');
+  const expanded = goodPlan.instruction.trim() + '\n작품 상세의 캡션 설정이 다시 열 때 유지되는지 검사한다.';
+  await writeFile(expandedRequest, expanded);
+  const expandedTask = JSON.parse(cli(['begin', expandedRequest]).stdout);
+  await write(planPath, { ...goodPlan, instruction: expanded });
+  cli(['plan', planPath]);
+  assert.match(JSON.parse(cli(['verify', 'plan'], 1).stdout).reason, /사용자 지시 원문/);
+  cli(['permit', expandedTask.task], 1);
+  task = JSON.parse(cli(['begin', request]).stdout);
   const wrongPlan = { ...goodPlan, decisions: goodPlan.decisions.map(row => ({ ...row, decision: '좋아지게 고친다.' })) };
   await write(planPath, wrongPlan);
   cli(['plan', planPath]);
@@ -504,7 +517,7 @@ console.log(JSON.stringify(output));
   const freshRun = (args, code) => run(bin, [args[0], fresh, ...args.slice(1)], install, code);
   const freshConfig = await read(join(fresh, 'lubyanka.json'));
   Object.assign(freshConfig, {
-    image, reviewPlan: ['node', '-e', 'console.log(JSON.stringify({accepted:true,reasons:["정답지의 실제 원본을 연다"]}))'],
+    image, reviewPlan: ['node', '-e', 'console.log(JSON.stringify({accepted:true,coverage:[{quote:"역할별 승인 규칙이 유지됐나?",ids:["MANUAL"]}],reasons:["정답지의 실제 원본을 연다"]}))'],
     reportReview: ['node', 'review-manual.mjs'],
     checks: { plan: [['node', '-e', 'console.log("{}")']] },
   });
@@ -563,7 +576,7 @@ console.log(JSON.stringify(claims.map(claim => ({
   const manualResult = JSON.parse(freshRun(['verify', 'plan', '--manual-file', manualFile]).stdout);
   assert.equal(manualResult.status, 'pass');
   assert.equal((await read(manualResult.evidence)).manual.claims[0].id, 'MANUAL');
-  console.log(`릴리스 후보 ${pack.filename}의 오프라인 설치와 API import 통과`);
+  console.log(`릴리스 후보 ${basename(archive)}의 오프라인 설치와 API import 통과`);
   console.log('기존·빈 프로젝트 도입, 기존 지침과 Git 훅 보존, 자아비판 전문 전달 확인');
   console.log('배포 제외 속성의 영향을 받지 않는 Docker 계획·기능·병합 시험, 호스트 파일·네트워크 격리, 동시 실행과 정책 차단 검사 통과');
   console.log('64 MiB 초과 Git 아카이브를 Docker에 전달하고 파일 끝까지 보존 확인');
