@@ -22,3 +22,4 @@
 | 0003 | [3번 원고](originals/0003/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `17fc3597c8c6a651e0db60eee8c43d63a16cb1c3cd29b763b387c88aeccbbb22` |
 | 0004 | [4번 원고](originals/0004/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `822fd2ff5a9da41e9621adbd597fbe46befb17c243ddf56b9c8749cfdffa19e2` |
 | 0005 | [5번 원고](originals/0005/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `c16d93ceba427f296e4bd51fa73936fd7715590166f4e3d55d744b6898730bca` |
+| 0006 | [6번 원고](originals/0006/chat.txt) | 개발자 채팅 메시지 | 1~5번 원고의 적용 범위에 대한 추가 설명 | `893eaf1a7fdda4b5feeeb58968d3d75b108312a1bce2d4b78f5e216c0fd02b23` |
