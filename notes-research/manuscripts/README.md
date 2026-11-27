@@ -20,3 +20,4 @@
 | 0001 | [1번 원고](originals/0001/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `38bc2026650ab8679b67f0a88e0512b4225c8be41b6394d68d4f720e85c42046` |
 | 0002 | [2번 원고](originals/0002/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `c22d646300060a7ce04f1ce6a4476d58032aad4253bcc676d50ea558b4e85ce3` |
 | 0003 | [3번 원고](originals/0003/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `17fc3597c8c6a651e0db60eee8c43d63a16cb1c3cd29b763b387c88aeccbbb22` |
+| 0004 | [4번 원고](originals/0004/chat.txt) | 개발자 채팅 메시지 | 최초 원문 | `822fd2ff5a9da41e9621adbd597fbe46befb17c243ddf56b9c8749cfdffa19e2` |
