@@ -1,0 +1,40 @@
+name: Publish verified npm candidate
+on: workflow_dispatch
+permissions: {}
+concurrency:
+  group: npm-public
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'gelb2/ProjectLubyanka' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: npm-public
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      statuses: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.19.0
+      - name: Rebuild the candidate from the main commit
+        run: |
+          bash verification/check-main.sh
+          node --test verification/npm-candidate.test.mjs
+          mkdir "$RUNNER_TEMP/source"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/source"
+          cd "$RUNNER_TEMP/source/notes-research/oracle-scaffold"
+          file=$(npm pack --offline --ignore-scripts --pack-destination "$RUNNER_TEMP" --silent)
+          echo "ARCHIVE=$RUNNER_TEMP/$file" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.15.0
+      - name: Compare the maintainer test result, publish with OIDC and reinstall
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash verification/npm-publish.sh "$ARCHIVE"
