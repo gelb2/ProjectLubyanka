@@ -6,6 +6,7 @@ permissions:
   contents: read
 jobs:
   source:
+    name: Route to ${{ github.base_ref }}
     runs-on: ubuntu-latest
     steps:
       - name: Check promotion source
@@ -20,7 +21,7 @@ jobs:
             develop) test "$SOURCE" != main && test "$SOURCE" != develop ;;
           esac
   package:
-    name: Package verification
+    name: Package for ${{ github.base_ref }}
     needs: source
     runs-on: ubuntu-latest
     steps:
