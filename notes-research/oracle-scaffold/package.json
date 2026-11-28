@@ -1,6 +1,11 @@
 {
   "name": "lubyanka-oracle-scaffold",
-  "version": "0.5.0",
+  "version": "0.5.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gelb2/ProjectLubyanka.git",
+    "directory": "notes-research/oracle-scaffold"
+  },
   "description": "루비얀카와 샤라시카의 실행 정답지, 격리 시험과 Git 검증 도구",
   "license": "UNLICENSED",
   "publishConfig": {

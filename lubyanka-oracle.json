@@ -171,6 +171,8 @@
       "requiredEvidence": [
         "main의 부모와 트리",
         "후보 설치 및 재시험",
+        "실모델 시험을 통과한 main 커밋, 유지관리자의 GitHub 상태 기록과 tarball SHA-512 일치",
+        "main 전용 게시 환경에서 npm OIDC 공개, 출처 증명 및 공식 재설치. 기록 누락·발행자·해시 불일치의 거부",
         "공식 배포 파일 integrity와 앱 설치 결과"
       ],
       "unresolved": [
