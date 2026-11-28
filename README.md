@@ -16,8 +16,8 @@
 사용 앱은 공식 npm에 공개된 정확한 버전만 설치한다. 잠금 파일의 공식 tarball 주소와 integrity를 확인하고 재설치에는 `npm ci`를 쓴다. 개발 체크아웃·Git 의존성·로컬 tgz·링크·설치 후 패치를 사용한 앱은 도입 판정을 보류한다.
 
 ```sh
-npm view lubyanka-oracle-scaffold@0.5.0 dist.integrity --registry=https://registry.npmjs.org/ &&
-  npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.5.0
+npm view lubyanka-oracle-scaffold@0.5.1 dist.integrity --registry=https://registry.npmjs.org/ &&
+  npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.5.1
 npm exec -- lubyanka adopt "$(git rev-parse --show-toplevel)"
 ```
 

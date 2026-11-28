@@ -74,3 +74,9 @@ bash verification/main-release.sh --publish
 명령은 원격 main·develop 및 병합 트리를 대조하고 커밋에서 tarball을 한 번 만든다. 단위 시험, 스캐폴드 설치, 지정한 tarball의 빈 프로젝트 설치·공개 API·Docker·Git 정상 및 반례 검사를 실행한다. 공개 직전 참조와 해시를 확인하고 npm에 같은 파일을 제출한다. 공개 후 공식 레지스트리 설치와 integrity를 확인한다. 사용 앱은 정식 버전과 lockfile을 사용하고 개발 사본을 제거한 뒤 npm ci로 다시 설치한다. [npm publish의 tarball 계약](https://docs.npmjs.com/cli/v10/commands/npm-publish/) · [설립·적용 진단](diagnosis-2026-11-28.md)
 
 사용 앱에서 설치를 마친 뒤 패키지 저장소의 `node verification/endpoint-install.mjs <앱 npm 루트>`를 실행한다. 명세·잠금 파일·실제 CLI 경로와 전체 설치 파일을 공식 tarball에 대조한다.
+
+### npm 게시 인증
+
+유지관리자가 위 명령을 실행하면 설치본의 실모델 시험을 마친 뒤 같은 main 커밋에 `release/installed-candidate` 상태와 tarball SHA-512를 등록한다. GitHub의 `npm-publish.yml`은 같은 커밋에서 다시 패킹하고, 유지관리자 계정이 남긴 최신 성공 상태와 바이트가 일치할 때만 공식 npm에 게시한다. 공개 직후에는 npm 출처 증명, `latest`, 빈 프로젝트의 설치 파일과 공개 API를 확인한다. 기존 버전으로 다시 실행하면 같은 파일의 공개 결과를 검증한다.
+
+npm 패키지의 GitHub 신뢰 게시자는 `gelb2/ProjectLubyanka`, `npm-publish.yml`, `npm-public` 환경으로 등록한다. GitHub 환경에서 허용할 브랜치는 `main` 하나다. 최초 권한 등록은 npm 계정의 패스키로 승인한다. 이후 게시에는 GitHub 호스팅 러너가 받은 단기 OIDC 자격증명을 쓴다. 실행 전제는 유지관리자의 GitHub CLI 로그인과 로컬 실모델·Docker 시험 환경이다. [npm 신뢰 게시자](https://docs.npmjs.com/trusted-publishers/) · [GitHub 커밋 상태](https://docs.github.com/en/rest/commits/statuses)

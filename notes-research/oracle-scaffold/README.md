@@ -13,8 +13,8 @@
 Node.js 20 이상이 필요하다. Git 저장소에 적용할 때는 Git을, 샤라시카를 실행할 때는 Docker와 프로젝트가 지정한 로컬 이미지를 준비한다.
 
 ```sh
-npm view lubyanka-oracle-scaffold@0.5.0 dist.integrity --registry=https://registry.npmjs.org/ &&
-  npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.5.0
+npm view lubyanka-oracle-scaffold@0.5.1 dist.integrity --registry=https://registry.npmjs.org/ &&
+  npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.5.1
 npm exec -- lubyanka adopt /path/to/git-root
 ```
 

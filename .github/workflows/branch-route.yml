@@ -43,6 +43,7 @@ jobs:
         with:
           node-version: 22
       - run: docker pull node:22-bookworm-slim
+      - run: node --test verification/npm-candidate.test.mjs
       - run: bash verification/branch-route-test.sh
       - run: npm --prefix notes-research/oracle-scaffold test --offline
       - run: node verification/standalone.mjs
