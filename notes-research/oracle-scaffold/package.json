@@ -24,6 +24,8 @@
     "gate.mjs",
     "report.mjs",
     "method-audit.mjs",
+    "pipeline-contract.mjs",
+    "pipeline.md",
     "sharashka.mjs",
     "hooks.mjs",
     "managed.md"
