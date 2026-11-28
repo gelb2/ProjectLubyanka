@@ -40,7 +40,8 @@ export function validateGost(policy) {
 }
 
 export function validateScope(scope, policy) {
-  requireFields(scope, ['write', 'read', 'snapshots', 'intentional_constraints'], ['candidates']);
+  requireFields(scope, ['write', 'read', 'snapshots', 'intentional_constraints'], ['candidates', 'visual']);
+  if ('visual' in scope && typeof scope.visual !== 'boolean') throw new Error('visual은 불리언입니다.');
   if ('candidates' in scope && ![1, 2].includes(scope.candidates)) throw new Error('허용 후보 수는 1 또는 2입니다.');
   for (const key of ['write', 'read', 'snapshots']) list(scope[key], key, repoPath);
   list(scope.intentional_constraints, 'intentional_constraints', hasText);
