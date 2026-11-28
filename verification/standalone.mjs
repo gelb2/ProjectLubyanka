@@ -34,7 +34,7 @@ try {
   ], source, 0).stdout)[0];
   assert.deepEqual(tarball.files.map(entry => entry.path).sort(), [
     'README.md', 'engine.mjs', 'gate.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
-    'managed.mjs', 'method-audit.mjs', 'oracle.mjs', 'package.json', 'procedure.md', 'project.mjs',
+    'managed.mjs', 'method-audit.mjs', 'oracle.mjs', 'package.json', 'pipeline-contract.mjs', 'pipeline.md', 'procedure.md', 'project.mjs',
     'report.mjs', 'self-critique.md', 'sharashka.mjs',
   ]);
   run('npm', [
@@ -46,6 +46,16 @@ try {
   assert.equal(manifest.bin['lubyanka-oracle'], './oracle.mjs');
   assert.equal(manifest.private, undefined);
   assert.deepEqual(manifest.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' });
+  const policyPath = join(workspace, 'gost.json');
+  const scopePath = join(workspace, 'scope.json');
+  await writeFile(policyPath, JSON.stringify({ version: 1, method_locks: [], forbidden_shortcuts: [],
+    protected_paths: ['oracle.json'], visual_tokens: {} }));
+  const scope = { write: ['app.js'], read: [], snapshots: [], intentional_constraints: [] };
+  const contractArgs = [join(installed, 'managed.mjs'), 'contract', policyPath, scopePath];
+  await writeFile(scopePath, JSON.stringify(scope));
+  run(process.execPath, contractArgs, installation, 0);
+  await writeFile(scopePath, JSON.stringify({ ...scope, write: ['oracle.json'] }));
+  run(process.execPath, contractArgs, installation, 1);
   const executable = process.platform === 'win32' ? process.execPath : join(installation, 'node_modules', '.bin', 'lubyanka-oracle');
   const entry = process.platform === 'win32' ? [join(installed, 'oracle.mjs')] : [];
   const cli = (args, expected) => run(executable, [...entry, ...args], installation, expected);

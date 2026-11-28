@@ -7,6 +7,7 @@ import { audit, begin, finish, guardCommit, guardReferences, permit, plan, revie
 import { installHooks } from './hooks.mjs';
 import { command } from './lab.mjs';
 import { adopt, json } from './project.mjs';
+import { validateGost, validateScope } from './pipeline-contract.mjs';
 
 async function main() {
   if (process.argv[2] === '_hook') {
@@ -38,6 +39,11 @@ async function main() {
     const observations = json(await readFile(source), '실측');
     return report(evaluateOracle(manifest, arg, observations));
   }
+  if (action === 'contract' && !source) {
+    const policy = validateGost(json(await readFile(path), path));
+    if (arg) validateScope(json(await readFile(arg), arg), policy);
+    return report({ status: 'valid', version: policy.version });
+  }
   const root = await realpath(path);
   if (action === 'adopt' && !arg) return report(await adopt(root));
   if (action === 'audit' && !arg) return report(await audit(root));
@@ -52,6 +58,7 @@ async function main() {
   if (action === 'finish' && arg && !source) return finish(root, arg);
   throw new Error([
     'lubyanka <adopt|audit|install-hooks> <Git 루트>',
+    'lubyanka contract <gost.json> [scope.json]',
     'lubyanka begin <Git 루트> <사용자 지시 파일> [--kind answer|development] [--resume]',
     'lubyanka plan <Git 루트> <계획 JSON>',
     'lubyanka permit <Git 루트> <작업 ID>',
