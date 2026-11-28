@@ -42,6 +42,9 @@ try {
   const image = process.argv[3];
   const observation = "const {run}=require('./app.js'); console.log(JSON.stringify({cases:[{input:2,output:run(2)}], signatures:['run(number)']}))";
   await jsonFile('basis.json', image ? { image, command: ['node', '-e', observation] } : { contract: 'contract.md' });
+  const rule = { command:['node','-e',"console.log(JSON.stringify({at2:require('./app.js').run(2)}))"], expected:{at2:4} };
+  if (image) await jsonFile('checks.json', {'TASK-01':{image,build:['node','--check','app.js'],oracle:rule,
+    replaceCases:[{index:0,quote:'한글',output:4}],metrics:{...rule,expected:{at2:{min:4,max:4}}}}});
   for (const bad of ['1. first\n3. missing', '1. again\n1. again', 'orphan\n1. first', '1. ok\n~~~\n2. hidden', Buffer.from([0xff])]) {
     await writeFile(join(input, 'orders.md'), bad);
     await fails(['prepare', input], /번호|원문|encoded data|UTF-8/i);
@@ -104,6 +107,29 @@ try {
     }
     assert.equal(git('show',':app.js'),git('show','HEAD:app.js'));
     await assert.rejects(worker(root), /배차/);
+    const { inspect } = await import(new URL('./voenpred.mjs', pathToFileURL(binary)));
+    const locked = await lockedPacket(root,task);
+    const config = locked['checks.json'];
+    const candidate = result.candidates[0];
+    const reject = (changes, stage, altered) => {
+      const tree = changes ? candidateTree(root, original, {write:changes.map(c=>c.path)}, changes) : candidate.tree;
+      const id = 'red-check';
+      git('update-ref','refs/lubyanka/candidates/' + id,tree);
+      const report = inspect(root,task,{...candidate,id,tree},altered ?? locked);
+      assert.equal(report.verdict,'REJECT',JSON.stringify(report));
+      assert.equal(report.stage,stage,JSON.stringify(report));
+    };
+    reject([{path:'reference.txt',text:'untoucheD'}],'TAMPER');
+    reject([{path:'other.txt',text:'new'}],'TAMPER');
+    reject([{path:'app.js',text:"try { throw 1 } catch {\n}\n"}],'ANTI_CHEAT');
+    reject([{path:'app.js',text:'exports.run = ('}],'BUILD');
+    reject([{path:'app.js',text:'exports.run = n => n;'}],'ORACLE');
+    reject(null,'ORACLE',{...locked,'checks.json':{...config,oracle:{...rule,command:['node','-e','console.log("{}")']}}});
+    reject(null,'METRICS',{...locked,'checks.json':{...config,metrics:{...rule,expected:{at2:{max:1}}}}});
+    const measured = JSON.parse((await execute(process.execPath,[binary,'voenpred',root],{env})).stdout);
+    assert.equal(measured.status,'pass');
+    assert.deepEqual(measured.reports.map(r=>r.observations.oracle),[{at2:4},{at2:4}]);
+    assert.equal((await run('status')).tasks[0].state,'VOENPRED_PASS');
   }
   assert.equal(git('status','--porcelain'), '');
   console.log('Installed Gosplan: lossless bytes, invalid-input refusal, prior HEAD and protection, one winning dispatch, next task closed.');

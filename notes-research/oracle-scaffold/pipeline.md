@@ -20,6 +20,12 @@
 
 같은 명령 끝에 격리 시험용 JSON 경로를 붙이면 관리자가 지정한 로컬 Docker 이미지와 명령을 실행한다. 이 결과에는 `provider: fixture`가 기록된다. 공급자 실행 방식은 [Codex 비대화형 실행](https://developers.openai.com/codex/noninteractive/)과 [Claude CLI](https://code.claude.com/docs/en/cli-reference)를 따른다.
 
+## 보옌프레드 실행
+
+지시 폴더의 `checks.json`에 TASK-ID마다 로컬 Docker `image`, 빌드 명령 배열 `build`, 독립 검측 `oracle`을 둔다. 각 검측은 `command`로 실행한 JSON 관측값을 `expected`의 항목별 기대값과 대조한다. 수치의 상·하한은 `{"min":0,"max":10}`처럼 지정한다. 런타임 수치가 필요한 작업은 같은 형식의 `metrics`를 추가한다. 명령과 기대값은 관리자 입력에 보관한다. 프로젝트 안의 검측 스크립트·설정·검증용 의존성은 `protected_paths`에 등록한다. 기존 동작을 명시적으로 바꾸는 작업은 `replaceCases`에 기준 사례의 `index`, 원문의 `quote`, 새 `output`을 적는다.
+
+`lubyanka voenpred <Git 루트>`는 전체 후보 트리를 검사한다. 실행 결과를 원장 판본의 `voenpred_report.json`에 기록한다. 적어도 한 후보가 모든 해당 검사를 통과하면 감찰 단계가 열린다. 전부 반려되면 종료 코드 1을 반환한다.
+
 ## 고스플란 실행
 
 `lubyanka gosplan <Git 루트> prepare <지시 폴더>`는 지시 폴더의 `orders.md`, `gost.json`, `scope.json`, `basis.json`을 봉인한다. `scope.json`은 TASK-01부터 원문 순서대로 각 ID에 위 표의 범위를 연결한 객체다. 번호는 첫 열에서 `1. 본문`으로 시작한다. 들여쓴 번호와 코드 블록은 상위 항목의 본문에 포함한다. 새 파일도 쓰기 범위에 명시할 수 있다.

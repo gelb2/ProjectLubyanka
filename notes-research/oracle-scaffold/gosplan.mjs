@@ -147,6 +147,11 @@ export async function prepare(root, control) {
   const previous = await latest(root);
   const files = {};
   for (const name of ['orders.md', 'gost.json', 'scope.json', 'basis.json']) files[name] = await controlFile(control, name);
+  try {
+    files['checks.json'] = await controlFile(control, 'checks.json');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
   const orders = files['orders.md'];
   const tasks = splitOrders(orders);
   const policy = validateGost(json(files['gost.json'], 'gost.json'));
@@ -171,7 +176,7 @@ export async function prepare(root, control) {
   return publish(root, { version: 1, revision, inputRevision: revision + 1, campaign, ref, head, digests, tasks }, files);
 }
 
-function observe(root, head, basis, scope) {
+export function observe(root, head, basis, scope) {
   if (basis.contract) {
     const bytes = baseFile(root, head, basis.contract);
     if (!bytes.toString('utf8').trim()) throw new Error('기준 정본이 비었습니다.');
@@ -218,6 +223,12 @@ export async function dispatch(root) {
   const baseline = observe(root, ledger.head, basis, scope);
   const files = { 'raw_order.txt': raw, 'scope.json': JSON.stringify(scope), 'gost.json': inputs['gost.json'],
     'protected_hashes.json': JSON.stringify(protectedHashes), 'baseline.json': JSON.stringify({ baseline, fixtures }) };
+  if (inputs['checks.json']) {
+    const checks = json(inputs['checks.json'], 'checks.json')[task.id];
+    if (!checks || !checks.image) throw new Error('태스크의 독립 검사 설정이 없습니다.');
+    files['checks.json'] = JSON.stringify({ ...checks, image:imageId(root, checks.image) });
+  }
+  if (!basis.contract) files['characterize.json'] = JSON.stringify({ ...basis, image:imageId(root, basis.image) });
   const lockHashes = Object.fromEntries(Object.entries(files).map(([name, data]) => [name, hash(data)]));
   Object.assign(task, { state: 'IN_PROGRESS', attempt: task.attempt + 1, head: ledger.head, lockHashes,
     token: randomUUID(), lockRevision: ledger.revision + 1, lockHash: hash(JSON.stringify(lockHashes)) });

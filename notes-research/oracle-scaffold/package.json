@@ -25,6 +25,7 @@
     "gosplan.mjs",
     "provider.mjs",
     "worker.mjs",
+    "voenpred.mjs",
     "report.mjs",
     "method-audit.mjs",
     "pipeline-contract.mjs",
