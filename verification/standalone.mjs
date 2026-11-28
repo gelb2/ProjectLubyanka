@@ -33,9 +33,9 @@ try {
     'pack', '--offline', '--ignore-scripts', '--json', '--pack-destination', workspace,
   ], source, 0).stdout)[0];
   assert.deepEqual(tarball.files.map(entry => entry.path).sort(), [
-    'README.md', 'engine.mjs', 'gate.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
-    'managed.mjs', 'method-audit.mjs', 'oracle.mjs', 'package.json', 'procedure.md', 'project.mjs',
-    'report.mjs', 'self-critique.md', 'sharashka.mjs',
+    'README.md', 'engine.mjs', 'engine.test.mjs', 'execute.mjs', 'fallback.mjs', 'gate.mjs', 'gosplan.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
+    'managed.mjs', 'method-audit.mjs', 'method-audit.test.mjs', 'oracle.mjs', 'oracle.test.mjs', 'package.json', 'pipeline-contract.mjs', 'pipeline-contract.test.mjs', 'pipeline.md', 'politruk.mjs', 'procedure.md', 'project.mjs',
+    'provider.mjs', 'provider.test.mjs', 'report.mjs', 'self-critique.md', 'sharashka.mjs', 'voenpred.mjs', 'worker.mjs',
   ]);
   run('npm', [
     'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', join(workspace, tarball.filename),
@@ -43,9 +43,24 @@ try {
 
   const installed = join(installation, 'node_modules', tarball.name);
   const manifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
+  const installedTests = run('npm',['test','--offline'],installed,0).stdout;
+  assert.match(installedTests,/# pass [1-9]\d*/u);
+  assert.match(installedTests,/# fail 0/u);
   assert.equal(manifest.bin['lubyanka-oracle'], './oracle.mjs');
   assert.equal(manifest.private, undefined);
   assert.deepEqual(manifest.publishConfig, { access: 'public', registry: 'https://registry.npmjs.org/' });
+  const policyPath = join(workspace, 'gost.json');
+  const scopePath = join(workspace, 'scope.json');
+  await writeFile(policyPath, JSON.stringify({ version: 1, method_locks: [], forbidden_shortcuts: [],
+    protected_paths: ['oracle.json'], visual_tokens: {} }));
+  const scope = { write: ['app.js'], read: [], snapshots: [], intentional_constraints: [] };
+  const contractArgs = [join(installed, 'managed.mjs'), 'contract', policyPath, scopePath];
+  await writeFile(scopePath, JSON.stringify(scope));
+  run(process.execPath, contractArgs, installation, 0);
+  await writeFile(scopePath, JSON.stringify({ ...scope, write: ['oracle.json'] }));
+  run(process.execPath, contractArgs, installation, 1);
+  const pipelineTest = fileURLToPath(new URL('./pipeline.mjs', import.meta.url));
+  process.stdout.write(run(process.execPath, [pipelineTest, join(installed, 'managed.mjs')], installation, 0).stdout);
   const executable = process.platform === 'win32' ? process.execPath : join(installation, 'node_modules', '.bin', 'lubyanka-oracle');
   const entry = process.platform === 'win32' ? [join(installed, 'oracle.mjs')] : [];
   const cli = (args, expected) => run(executable, [...entry, ...args], installation, expected);

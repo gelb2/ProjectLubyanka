@@ -4,6 +4,7 @@
 
 - [정본 위계와 타 프로젝트 이식 계획](CANON-AND-ADOPTION-PLAN.md)
 - [방법론 고도화 원고 접수](manuscripts/README.md)
+- [원고 1~6 분석과 루비얀카 방법론 고도화 계획](METHODOLOGY-UPGRADE-PLAN.md)
 - [라이브러리 구성과 흐름](LUBYANKA-LIBRARY-PLAN.md)
 - [npm 구현과 검증 계획](LUBYANKA-SHARASHKA-IMPLEMENTATION-PLAN.md)
 - [정답지 전제와 판정 기준 연구](LUBYANKA-SHARASHKA-ORACLE-RESEARCH.md)

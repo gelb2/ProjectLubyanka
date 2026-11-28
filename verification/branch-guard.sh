@@ -6,6 +6,16 @@ zero=0000000000000000000000000000000000000000
 integration=$(git rev-parse --verify refs/heads/develop)
 while read -r old new ref; do
   case "$ref" in refs/heads/*) ;; *) continue ;; esac
+  # Packing first persists the same object, then prunes the loose copy.
+  # A real deletion of a packed branch also locks/rewrites packed-refs.
+  if [ "$new" = "$zero" ] && [ "$old" != "$zero" ]; then
+    packed=$(git rev-parse --git-path packed-refs)
+    loose=$(git rev-parse --git-path "$ref")
+    if [ -f "$loose" ] && [ -f "$packed" ] && [ ! -e "$packed.lock" ] &&
+       [ "$(cat "$loose")" = "$old" ] && awk -v oid="$old" -v ref="$ref" '$1==oid && $2==ref { found=1 } END { exit !found }' "$packed"; then
+      continue
+    fi
+  fi
   if [ "$old" = "$zero" ]; then
     old=$(git rev-parse --verify --quiet "$ref") || old=$zero
   fi

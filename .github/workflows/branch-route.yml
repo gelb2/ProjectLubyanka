@@ -6,6 +6,7 @@ permissions:
   contents: read
 jobs:
   source:
+    name: Route to ${{ github.base_ref }}
     runs-on: ubuntu-latest
     steps:
       - name: Check promotion source
@@ -19,3 +20,30 @@ jobs:
             main) test "$SOURCE" = develop && test "$SOURCE_REPO" = "$REPO" ;;
             develop) test "$SOURCE" != main && test "$SOURCE" != develop ;;
           esac
+  package:
+    name: Package for ${{ github.base_ref }}
+    needs: source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify development ancestry
+        if: github.base_ref == 'develop'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          TIP: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git merge-base "$BASE" "$TIP" >/dev/null
+          git rev-list "$TIP" "^$BASE" | sort > "$RUNNER_TEMP/proposed"
+          git rev-list refs/remotes/origin/main "^$BASE" | sort > "$RUNNER_TEMP/main-only"
+          test -z "$(comm -12 "$RUNNER_TEMP/proposed" "$RUNNER_TEMP/main-only")"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: docker pull node:22-bookworm-slim
+      - run: bash verification/branch-route-test.sh
+      - run: npm --prefix notes-research/oracle-scaffold test --offline
+      - run: node verification/standalone.mjs
+      - run: node verification/release.mjs

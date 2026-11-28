@@ -1,0 +1,55 @@
+# 루비얀카 실행 계약 v1
+
+`lubyanka contract <gost.json> [scope.json]`은 지시 계층의 규격과 선택한 작업 범위의 형식을 검사한다. 종료 코드 0은 형식 검사 통과, 1은 입력 오류다.
+
+개발자의 원문과 상위 기획 정본이 목적·보존 조건을 정한다. 고스플란은 번호별 계약을 고정하고 샤라시카는 허용 범위에서 후보를 생산한다. 보옌프레드가 독립 시험에 서명하고 폴리트루크가 원문과 결과를 대조한다. 작업자는 합격 조건이나 두 서명을 발급할 권한이 없다. 이 문서가 계층 간 교환 형식의 정본이다. 데이터 형식 확인과 실제 판정 발급은 별개의 동작이다.
+
+| 소유자와 자료 | 필드와 의미 |
+| --- | --- |
+| 사용자 · `orders.md` | UTF-8 원문. 각 최상위 항목의 원래 번호, 시작 바이트(포함), 끝 바이트(제외)를 보관한다. 모든 구간을 원래 순서대로 합친 결과의 SHA-256이 수신본과 같아야 한다. |
+| 사용자 · `gost.json` | `version: 1`, 문자열 배열 `method_locks`, `forbidden_shortcuts`, Git 상대 경로 배열 `protected_paths`, 이름과 기준값의 객체 `visual_tokens`. 해당 규칙이 없으면 빈 배열·객체로 명시한다. |
+| 고스플란 · 범위 | `write`는 변경을 허용한 파일, `read`는 읽기 전용 인접 파일, `snapshots`는 기준 커밋의 특성화 관측 파일, `intentional_constraints`는 원문에서 명시한 제약의 인용이다. 각 필드는 배열이다. 보호 경로나 하위 파일에 대한 쓰기, 상위 규칙 덮어쓰기, 미등록 필드는 거부한다. |
+| 고스플란 · 원장과 잠금 | 원장 판본 1. 작업 묶음은 원문·GOST 지문으로 식별하고 항목은 TASK-ID로 구분한다. 각 배차는 기준 커밋·시도 번호·잠금 지문에 결합한다. 태스크 카드는 원문 구간과 규격을 상속한다. 최초 원문·기존 자아비판·구버전 작업 기록을 보존한다. |
+| 샤라시카 · 후보 | 시도별 기준 커밋과 생성한 Git 트리를 함께 인계한다. 작업자가 제출한 코드나 설명에는 시험 결과를 서명할 권한이 없다. |
+| 보옌프레드 · 기계 판정 | 동일 TASK-ID·시도·잠금 지문·기준 커밋·후보 트리에 검사 단계·실측·성공 또는 실패를 연결한다. 필수 입력 누락과 판정 불능은 실패로 기록한다. |
+| 폴리트루크 · 의미 판정 | 응답은 `verdict`, `category`, 한 줄 `evidence`를 갖는다. PASS에는 NONE, REJECT에는 MISSING_REQ·SCOPE_SHRINK·REGRESSION·CHEAT·OVERREACH·VISUAL_DRIFT 중 하나를 쓴다. 관리 계층이 응답을 실제 근거 및 같은 후보의 기계 판정에 연결한다. |
+
+## 원장 실행과 재개
+
+관리 계층이 원문·규격·범위·독립 검측을 지시 폴더에 준비하고 `lubyanka execute <Git 루트> <지시 폴더>`를 실행한다. 이후 같은 루트에서 `lubyanka execute <Git 루트>`로 재개한다. 각 태스크는 두 서명과 병합 직전 기계 재검측을 거친다. 서명·승인·트리가 일치할 때 관리형 Git 훅이 해당 병합만 허용한다. 반환 코드 0은 전체 완료, 2는 고위험 승인·예약·격리 대기, 1은 실행 오류다.
+
+다음 태스크에도 유지할 제약은 원문에서 인용해 `intentional_constraints`에 둔다. `checks.json`의 선택 필드 `promote`에 `{"quote":"인용한 원문","metric":"oracle의 관측 키"}`를 등록하면 통과·병합 후 다음 배차의 GOST에 한 번 편입한다. 원래 지시 파일은 보존한다. 격리 후에는 관리자가 고친 지시 폴더를 `gosplan <Git 루트> replace <지시 폴더>`로 재발령한다. 완료된 작업, 대상 밖 원문, 이전 판정은 유지한다.
+
+## 샤라시카 실행
+
+`lubyanka worker <Git 루트> run`이 배차된 태스크에서 Codex를 일회용 작업자로 호출한다. 서비스·인증·할당량·호출 시간 초과로 사용할 수 없으면 Claude를 새로 호출하고 실제 배정과 이유를 기록한다. 잘못된 응답과 반려는 다른 모델의 승인으로 바꿀 수 없다. 임시 빈 디렉터리에서 실행하며 모델은 허용한 파일의 전체 변경 제안만 제출한다. 관리자가 별도 인덱스에서 후보를 만든다. 선택 사항인 범위 필드 `candidates: 2`는 같은 태스크의 독립 후보를 두 번 생산한다. 각 프로세스는 고유 작업공간을 사용한다.
+
+같은 명령 끝에 격리 시험용 JSON 경로를 붙이면 관리자가 지정한 로컬 Docker 이미지와 명령을 실행한다. 이 결과에는 `provider: fixture`가 기록된다. 공급자 실행 방식은 [Codex 비대화형 실행](https://developers.openai.com/codex/noninteractive/)과 [Claude CLI](https://code.claude.com/docs/en/cli-reference)를 따른다.
+
+## 보옌프레드 실행
+
+지시 폴더의 `checks.json`에 TASK-ID마다 로컬 Docker `image`, 빌드 명령 배열 `build`, 독립 검측 `oracle`을 둔다. 각 검측은 `command`로 실행한 JSON 관측값을 `expected`의 항목별 기대값과 대조한다. 수치의 상·하한은 `{"min":0,"max":10}`처럼 지정한다. 런타임 수치가 필요한 작업은 같은 형식의 `metrics`를 추가한다. 명령과 기대값은 관리자 입력에 보관한다. 프로젝트 안의 검측 스크립트·설정·검증용 의존성은 `protected_paths`에 등록한다. 기존 동작을 명시적으로 바꾸는 작업은 `replaceCases`에 기준 사례의 `index`, 원문의 `quote`, 새 `output`을 적는다.
+
+`lubyanka voenpred <Git 루트>`는 전체 후보 트리를 검사한다. 실행 결과를 원장 판본의 `voenpred_report.json`에 기록한다. 적어도 한 후보가 모든 해당 검사를 통과하면 감찰 단계가 열린다. 전부 반려되면 종료 코드 1을 반환한다.
+
+## 폴리트루크 실행
+
+`lubyanka politruk <Git 루트>`는 유효한 기계 검측을 통과한 후보를 실제 모델에 보낸다. 기본 배정은 **Codex 작업자, Claude 감찰관**이다. 한 제공자가 작동하지 않으면 사용 가능한 Codex 또는 Claude가 해당 역할을 맡는다. 매 감찰은 새 세션에서 수행한다. 잘못된 판정 형식, 범위 밖 근거, 모델의 정상 반려는 재배정 사유에서 제외한다. 기록에는 실제 제공자, 전환 사유, 후보 트리, 검측과 연결된 판정이 남는다.
+
+원문, 적용 규칙, 인접 인터페이스, diff, 실측을 보낸다. UI 작업은 범위에 `visual: true`를 쓰고, 기준 PNG를 `snapshots`에 등록한다. `checks.json`의 `visual.reference`는 그 경로다. `visual.command`는 후보를 렌더링하고 표준 출력으로 `{"png":"PNG 바이트의 base64"}`를 반환한다. 두 이미지의 크기와 지문을 기록한다. 반려 근거는 후보 파일의 실제 행 또는 이미지 안 좌표와 연결한다.
+
+## 반려와 정산
+
+`lubyanka retry <Git 루트>`가 저장된 REJECT를 읽는다. 등록된 단일 국소 BUILD 오류에는 태스크당 최대 한 번 같은 후보에서 새 워커를 허용한다. 나머지 구조적 실패에서는 후보 참조를 폐기하고 금지 조건을 고정한다. 다음 `gosplan dispatch`는 원래 기준 커밋에서 다시 배차한다. 세 번 폐기하거나 판정 불능이면 QUARANTINED와 종료 코드 2를 반환한다. 실행 중 관리 프로세스가 끊기면 `lubyanka recover <Git 루트>`로 해당 예약을 격리한다.
+
+`lubyanka settle <Git 루트> offer`는 두 판정과 같은 트리의 제안 커밋과 병합 커밋을 준비한다. `integrate`는 깨끗한 작업 브랜치에서 그 커밋을 반영한다. 부모·트리를 다시 읽은 뒤 DONE을 기록하고 직렬 배차를 연다. 중단 후 같은 명령을 다시 실행할 수 있다. `checks.json`의 `risk: "high"`와 인증·결제·마이그레이션 등 위험 경로는 별도 승인을 기다린다. 관리자는 응답의 task·token·tree와 `decision: "APPROVE"`를 파일에 기록해 `settle <Git 루트> approve <파일>`로 승인한다. main은 저장소의 정식 배포 절차를 거친다.
+
+## 고스플란 실행
+
+`lubyanka gosplan <Git 루트> prepare <지시 폴더>`는 지시 폴더의 `orders.md`, `gost.json`, `scope.json`, `basis.json`을 봉인한다. `scope.json`은 TASK-01부터 원문 순서대로 각 ID에 위 표의 범위를 연결한 객체다. 번호는 첫 열에서 `1. 본문`으로 시작한다. 들여쓴 번호와 코드 블록은 상위 항목의 본문에 포함한다. 새 파일도 쓰기 범위에 명시할 수 있다.
+
+정본이 있는 프로젝트는 `basis.json`에 `{"contract":"docs/contract.md"}`를 지정한다. 브라운필드는 `{"image":"이미지 ID","command":["node","characterize.mjs"]}`와 같이 검토한 관측기를 지정한다. 관측기는 기준 커밋의 격리 환경에서 표준 입력으로 기준 커밋·범위를 받고, 실제 `cases`(input·output)와 공개 `signatures`를 JSON으로 반환한다.
+
+`lubyanka gosplan <Git 루트> dispatch`가 첫 미완료 태스크의 배차권을 한 번 발급한다. `status`는 현재 원장을 읽는다. 각 판본의 `ledger.json`과 배차 시점의 `lock/<TASK-ID>/`는 Git 공용 관리 디렉터리의 `lubyanka/gosplan/<판본>/`에 있다. CLI가 출력한 lock 경로는 관리자가 읽는다. 워커 입력은 그중 허용된 부분으로 구성한다.
+
+PENDING → IN_PROGRESS → VOENPRED_PASS → POLITRUK_PASS → DONE 순서로 진행한다. 원장이 두 판정과 같은 후보의 병합을 확인한 뒤 다음 태스크를 연다. 재시도는 PURGED, 사용자 개입이 필요한 중단은 QUARANTINED로 기록한다. 관리 계층이 원문과 기획 정본을 읽고 필수 시험과 종료 보고를 담당한다. 작업자와 감찰관에는 해당 계약과 필요한 근거만 전달한다.

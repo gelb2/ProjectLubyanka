@@ -35,12 +35,20 @@ bash verification/branch-route-test.sh
 npm --prefix "$pkg" test --offline
 node verification/standalone.mjs
 node verification/release.mjs "$archive"
+mkdir "$candidate/live"
+(cd "$candidate/live"; npm install --offline --ignore-scripts --no-fund --no-audit "$archive")
+node verification/live-caption.mjs "$candidate/live/node_modules/.bin/lubyanka" "${LUBYANKA_TEST_IMAGE:-node:22-bookworm-slim}"
 test "$(hash_file "$archive")" = "$digest"
 cd "$root"
 check_main
 echo "VERIFIED $name@$version $(git rev-parse HEAD) sha512-$digest"
 if [[ ${1:-} == --publish ]]; then
-  npm publish "$archive" --access public --tag latest --ignore-scripts --registry="$registry"
+  published=$(npm view "$name" versions --json --prefer-online --registry="$registry")
+  if node -e 'const value=JSON.parse(process.argv[1]); process.exit([].concat(value).includes(process.argv[2]) ? 0 : 1)' "$published" "$version"; then
+    test "$(npm view "$name@$version" dist.integrity --prefer-online --registry="$registry")" = "sha512-$digest"
+  else
+    npm publish "$archive" --access public --tag latest --ignore-scripts --registry="$registry"
+  fi
   (cd "$candidate/fresh"; npm install --save-exact --ignore-scripts --no-fund --no-audit --registry="$registry" "$name@$version")
   node verification/endpoint-install.mjs "$candidate/fresh"
   expected="sha512-$digest"

@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { rulesForPhase } from './engine.mjs';
 import { command, git, gitText, runLab } from './lab.mjs';
 import { readRegularFile, resolveDocument } from './lifecycle.mjs';
-import { configName, hasText, hash, json } from './project.mjs';
+import { configName, hasText, hash, json, projectOracle } from './project.mjs';
 
 const kinds = new Set([
   'source', 'reference-source', 'screenshot', 'motion', 'interaction', 'delivery',
@@ -45,7 +45,8 @@ export function reportPolicy(root, docs, baseline, phase) {
       (docs.config.selfCritiqueFollowup !== undefined && !checkSources.includes(docs.config.selfCritiqueFollowup))) {
     throw new Error('통합 기준의 종료 확장 모듈과 검사 소스를 등록하세요.');
   }
-  const baselineManifest = json(git(root, ['show', `${baseline}:${baselineConfig.oracle}`]), '통합 브랜치 정답지');
+  if (baselineConfig.oracleProfile !== docs.config.oracleProfile) throw new Error('후보에서 실행 정답 범위를 교체할 수 없습니다.');
+  const baselineManifest = projectOracle(json(git(root, ['show', `${baseline}:${baselineConfig.oracle}`]), '통합 브랜치 정답지'), baselineConfig.oracleProfile);
   const cases = reportCases(docs.manifest, phase);
   for (const previous of reportCases(baselineManifest, phase)) {
     const current = cases.find(item => item.id === previous.id && item.name === previous.name);
@@ -170,7 +171,7 @@ export async function verifyReport(root, docs, state, review, receipt, { failed 
     files: Object.fromEntries([...files].map(([path, file]) => [path, file.content.toString('base64')])),
   };
   const result = runLab(root, baseline, image, policy.verifier, undefined, { reportInput });
-  if (result.exitCode !== 0) throw new Error('독립 종료 검토기가 실패했습니다.');
+  if (result.exitCode !== 0) throw new Error('독립 종료 검토 실패 · ' + result.exitCode + ' · ' + result.stderr.trim().slice(-800));
   const decisions = json(result.stdout, '독립 종료 검토 결과');
   if (!Array.isArray(decisions) || decisions.length !== cases.length || cases.some(({ id, name }) => {
     const matches = decisions.filter(item => item?.id === id && item.case === name);

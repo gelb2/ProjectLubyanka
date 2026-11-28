@@ -7,6 +7,13 @@ import { audit, begin, finish, guardCommit, guardReferences, permit, plan, revie
 import { installHooks } from './hooks.mjs';
 import { command } from './lab.mjs';
 import { adopt, json } from './project.mjs';
+import { validateGost, validateScope } from './pipeline-contract.mjs';
+import { gosplan } from './gosplan.mjs';
+import { worker } from './worker.mjs';
+import { voenpred } from './voenpred.mjs';
+import { politruk } from './politruk.mjs';
+import { recover, retry, settle } from './fallback.mjs';
+import { execute } from './execute.mjs';
 
 async function main() {
   if (process.argv[2] === '_hook') {
@@ -38,7 +45,20 @@ async function main() {
     const observations = json(await readFile(source), '실측');
     return report(evaluateOracle(manifest, arg, observations));
   }
+  if (action === 'contract' && !source) {
+    const policy = validateGost(json(await readFile(path), path));
+    if (arg) validateScope(json(await readFile(arg), arg), policy);
+    return report({ status: 'valid', version: policy.version });
+  }
   const root = await realpath(path);
+  if (action === 'execute' && !source) return report(await execute(root,arg));
+  if (action === 'gosplan') return report(await gosplan(root, arg, source));
+  if (action === 'worker' && arg === 'run') return report(await worker(root, source));
+  if (action === 'voenpred' && !arg) return report(await voenpred(root));
+  if (action === 'politruk' && !arg) return report(await politruk(root));
+  if (action === 'retry' && !arg) return report(await retry(root));
+  if (action === 'recover' && !arg) return report(await recover(root));
+  if (action === 'settle' && (['offer','integrate'].includes(arg) && !source || arg === 'approve' && source)) return report(await settle(root,arg,source));
   if (action === 'adopt' && !arg) return report(await adopt(root));
   if (action === 'audit' && !arg) return report(await audit(root));
   if (action === 'install-hooks' && !arg) return report(await installHooks(root));
@@ -52,6 +72,12 @@ async function main() {
   if (action === 'finish' && arg && !source) return finish(root, arg);
   throw new Error([
     'lubyanka <adopt|audit|install-hooks> <Git 루트>',
+    'lubyanka contract <gost.json> [scope.json]',
+    'lubyanka execute <Git 루트> [지시 폴더]',
+    'lubyanka gosplan <Git 루트> <prepare 지시폴더|replace 지시폴더|dispatch|status>',
+    'lubyanka worker <Git 루트> run [격리 시험 설정]',
+    'lubyanka <voenpred|politruk|retry|recover> <Git 루트>',
+    'lubyanka settle <Git 루트> <offer|integrate|approve 승인파일>',
     'lubyanka begin <Git 루트> <사용자 지시 파일> [--kind answer|development] [--resume]',
     'lubyanka plan <Git 루트> <계획 JSON>',
     'lubyanka permit <Git 루트> <작업 ID>',
