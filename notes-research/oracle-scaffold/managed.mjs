@@ -12,6 +12,7 @@ import { gosplan } from './gosplan.mjs';
 import { worker } from './worker.mjs';
 import { voenpred } from './voenpred.mjs';
 import { politruk } from './politruk.mjs';
+import { recover, retry, settle } from './fallback.mjs';
 
 async function main() {
   if (process.argv[2] === '_hook') {
@@ -53,6 +54,9 @@ async function main() {
   if (action === 'worker' && arg === 'run') return report(await worker(root, source));
   if (action === 'voenpred' && !arg) return report(await voenpred(root));
   if (action === 'politruk' && !arg) return report(await politruk(root));
+  if (action === 'retry' && !arg) return report(await retry(root));
+  if (action === 'recover' && !arg) return report(await recover(root));
+  if (action === 'settle' && (['offer','integrate'].includes(arg) && !source || arg === 'approve' && source)) return report(await settle(root,arg,source));
   if (action === 'adopt' && !arg) return report(await adopt(root));
   if (action === 'audit' && !arg) return report(await audit(root));
   if (action === 'install-hooks' && !arg) return report(await installHooks(root));
