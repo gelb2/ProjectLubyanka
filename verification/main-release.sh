@@ -21,6 +21,7 @@ version=$(node -p "require('./$pkg/package.json').version")
 archive="$candidate/$name-$version.tgz"
 hash_file() { node -e "const fs=require('node:fs'),c=require('node:crypto');console.log(c.createHash('sha512').update(fs.readFileSync(process.argv[1])).digest('base64'))" "$1"; }
 digest=$(hash_file "$archive")
+bash verification/wait-npm-run-test.sh
 node --test verification/npm-candidate.test.mjs
 bash verification/branch-route-test.sh
 npm --prefix "$pkg" test --offline
@@ -44,7 +45,6 @@ if [[ ${1:-} == --publish ]]; then
     "repos/$repo/actions/workflows/npm-publish.yml/dispatches" -f ref=main --jq .workflow_run_id)
   [[ "$run" =~ ^[0-9]+$ ]]
   echo "https://github.com/$repo/actions/runs/$run"
-  gh run watch "$run" --repo "$repo" --exit-status
-  test "$(gh run view "$run" --repo "$repo" --json headSha,conclusion --jq '[.headSha,.conclusion]|join(" ")')" = "$head success"
+  bash verification/wait-npm-run.sh "$repo" "$run" "$head"
   echo "RELEASED $name@$version sha512-$digest"
 fi
