@@ -130,6 +130,23 @@ try {
     assert.equal(measured.status,'pass');
     assert.deepEqual(measured.reports.map(r=>r.observations.oracle),[{at2:4},{at2:4}]);
     assert.equal((await run('status')).tasks[0].state,'VOENPRED_PASS');
+    const { reviewPacket, checkEvidence } = await import(new URL('./politruk.mjs',pathToFileURL(binary)));
+    const row = measured.reports[0];
+    const {packet} = reviewPacket(root,task,candidate,locked,row);
+    assert.deepEqual(Object.keys(packet).sort(),['adjacent','contract','diff','gost','id','measurements','raw_order','scope']);
+    assert.throws(()=>reviewPacket(root,task,candidate,locked,{...row,target:{...row.target,token:'older'}}),/다릅니다/);
+    assert.throws(()=>reviewPacket(root,task,candidate,{...locked,'scope.json':{...scope,visual:true}},row),/화면/);
+    const okay = {verdict:'PASS',category:'NONE',evidence:'app.js:1 - measured correction'};
+    assert.deepEqual(checkEvidence(root,candidate,packet,okay),okay);
+    for (const replacement of [{evidence:'app.js:999 - missing'}, {evidence:'other.js:1 - missing'},
+      {category:'CHEAT'}, {verdict:'REJECT',category:'VISUAL_DRIFT'}, {evidence:'capture:1,1 - no image'}]) {
+      assert.throws(()=>checkEvidence(root,candidate,packet,{...okay,...replacement}));
+    }
+    await assert.rejects(execute(process.execPath,[binary,'politruk',root],{env}), error => {
+      const verdict = JSON.parse(error.stdout);
+      return error.code === 1 && verdict.reports.length === 2 && verdict.reports.every(r=>r.stage === 'INVALID_REVIEW');
+    });
+    assert.equal((await run('status')).tasks[0].state,'VOENPRED_PASS');
   }
   assert.equal(git('status','--porcelain'), '');
   console.log('Installed Gosplan: lossless bytes, invalid-input refusal, prior HEAD and protection, one winning dispatch, next task closed.');

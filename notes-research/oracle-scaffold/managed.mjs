@@ -11,6 +11,7 @@ import { validateGost, validateScope } from './pipeline-contract.mjs';
 import { gosplan } from './gosplan.mjs';
 import { worker } from './worker.mjs';
 import { voenpred } from './voenpred.mjs';
+import { politruk } from './politruk.mjs';
 
 async function main() {
   if (process.argv[2] === '_hook') {
@@ -51,6 +52,7 @@ async function main() {
   if (action === 'gosplan') return report(await gosplan(root, arg, source));
   if (action === 'worker' && arg === 'run') return report(await worker(root, source));
   if (action === 'voenpred' && !arg) return report(await voenpred(root));
+  if (action === 'politruk' && !arg) return report(await politruk(root));
   if (action === 'adopt' && !arg) return report(await adopt(root));
   if (action === 'audit' && !arg) return report(await audit(root));
   if (action === 'install-hooks' && !arg) return report(await installHooks(root));

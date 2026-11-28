@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -23,10 +23,10 @@ function unavailable(reason) {
   if (/connection refused|connection reset|could not connect|service unavailable|server overloaded|stream disconnected|unable to connect/i.test(reason)) return 'service';
 }
 
-export function oneShot(provider, instruction, packet) {
+export function oneShot(provider, instruction, packet, images = []) {
   const dir = mkdtempSync(join(tmpdir(), 'lubyanka-model-'));
   const output = join(dir, 'reply.json');
-  const input = instruction + '\nReturn a single JSON object without Markdown. Do not invoke tools.\n' + JSON.stringify(packet);
+  let input = instruction + '\nReturn a single JSON object without Markdown. Do not invoke tools.\n' + JSON.stringify(packet);
   try {
     const disabled = ['shell_tool', 'unified_exec', 'apps', 'multi_agent', 'memories', 'skill_search', 'hooks', 'plugins'];
     const args = provider === 'codex'
@@ -36,13 +36,25 @@ export function oneShot(provider, instruction, packet) {
         '-c', 'permissions.pipeline.filesystem={":workspace_roots"="read"}', '-c', 'permissions.pipeline.network.enabled=false', '-o', output, '-']
       : ['-p', '--restricted', '--tools', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
         '--disable-slash-commands', '--no-session-persistence', '--setting-sources', '', '--output-format', 'json'];
+    if (images.length && provider === 'codex') {
+      for (const [index, image] of images.entries()) {
+        const path = join(dir, index + '.png');
+        writeFileSync(path, Buffer.from(image, 'base64'), {mode:0o400});
+        args.splice(args.length - 1, 0, '--image', path);
+      }
+    } else if (images.length) {
+      args.splice(-1,1,'stream-json','--input-format','stream-json','--verbose');
+      const content = [{type:'text',text:input}, ...images.map(data=>({type:'image',source:{type:'base64',media_type:'image/png',data}}))];
+      input = JSON.stringify({type:'user',message:{role:'user',content}}) + '\n';
+    }
     const run = spawnSync(provider, args, { cwd: dir, input, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 180000, killSignal: 'SIGKILL' });
     if (['ENOENT', 'ETIMEDOUT'].includes(run.error?.code)) throw new Unavailable(provider + '/' + run.error.code);
     if (run.error) throw run.error;
     let response;
     let diagnostic = '';
     if (provider === 'claude') {
-      const envelope = run.stdout.trim() ? JSON.parse(run.stdout) : {};
+      const raw = run.stdout.trim();
+      const envelope = raw && images.length ? raw.split('\n').map(line=>JSON.parse(line)).findLast(event=>event.type === 'result') ?? {} : raw ? JSON.parse(raw) : {};
       if (envelope.is_error || run.status !== 0) diagnostic = String(envelope.result ?? run.stderr);
       else if (envelope.subtype === 'success') response = envelope.result;
     } else {
