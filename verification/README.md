@@ -53,9 +53,17 @@ Node 20.15.0·22.19.0의 단위·회귀 시험 18개와 설치본의 Docker·Git
 
 오프라인 설치본에서 한 문구는 줄바꿈을 넣은 전체 초안으로, 다른 문구는 종료 기록의 코드 검토 문장으로 제출했다. 둘 다 차단하고 통과 기록을 폐기했다. 동일 요청의 새 착수는 거부됐다. 전문 재독 뒤 이유·기술 원인을 기록하고 다시 시험한 결론은 승인됐다.
 
+## 0.5.0 방법론 검증
+
+`node verification/release.mjs`는 현재 후보를 패킹·설치한 뒤 고스플란의 한글 원문 보존, 동시 배차, 샤라시카 격리, 보옌프레드 반례, 잘못된 감찰, 국소 수정과 세 번 폐기, 생산자의 독립 검토와 보고를 실행한다. 설치본의 `npm test`에서도 실제 단위 시험이 실행된다. 생산자 실행 정답의 범위는 기존 정답지 파일의 `executionProfiles.producer`다. 설립·이관·출시 이력은 같은 파일에 보존한다.
+
+소형 합성 프로젝트에서 덧셈 수정본과 고장난 기준을 실제 Codex·Claude로 대조했다. 세 숫자 사례에서 수정본은 PASS, 기준은 REJECT였다. 한쪽 실행 파일을 숨긴 두 방향 모두 남은 제공자가 해당 역할을 수행했다. 의미 감찰의 고정 예제 일곱 건에서 요구 누락·저장 생략·공개 API 파손·하드코딩·범위 밖 변경을 반려했고, 정상·이름 차이를 승인했다. 저장 생략과 범위 밖 변경의 원인 코드는 각각 MISSING_REQ와 REGRESSION이었다. 파란 기준과 빨간 후보 캡처는 VISUAL_DRIFT로 반려했다. 이 결과는 해당 입력에서 관측한 판정이다.
+
+`node verification/model-trial.mjs <missing|shrink|regression|cheat|overreach|valid|naming>`는 합성 코드 하나를 실제 감찰관에 보낸다. `node verification/live-caption.mjs <설치 CLI> <로컬 Docker 이미지>`는 메모리 저장 오답, 프로세스 재시작 후 한글 복원, 표시, 고위험 승인과 병합을 실행한다. main 공개 직전에는 같은 tarball의 CLI로 이 경로를 다시 실행한다. [입출력 계약](../notes-research/oracle-scaffold/pipeline.md)
+
 ## main 후보 설치 검증과 npm 공개
 
-피처는 develop에서 분기하고 develop에 병합한다. main에는 develop을 두 번째 부모로 하는 병합 커밋을 만든다. 각 개발 복제본에서 `bash verification/install-branch-guard.sh`로 로컬 참조 검사를 연결한다. 이 저장소의 GitHub 플랜에서는 비공개 브랜치 보호가 403으로 거절됐다. PR 상태 검사 결과와 로컬 차단의 범위를 구분한다.
+피처는 develop에서 분기하고 develop에 병합한다. main에는 develop을 두 번째 부모로 하는 병합 커밋을 만든다. 각 개발 복제본에서 `bash verification/install-branch-guard.sh`로 로컬 참조 검사를 연결한다. 공개 저장소는 관리자에게도 대상별 출처와 패키지 검사를 요구한다. 피처를 main으로 제출한 시험에서는 출처 검사가 실패하고 병합이 차단됐다. [정상 develop 병합](https://github.com/gelb2/ProjectLubyanka/pull/1) · [main 직접 승격 반례](https://github.com/gelb2/ProjectLubyanka/pull/2)
 
 main을 원격에 반영한 다음 깨끗한 main에서 다음 명령을 실행한다. 인수 없이 실행하면 공개 직전까지 검증한다. 로컬 이미지 태그 조회가 실패하면 실제 이미지 ID를 LUBYANKA_TEST_IMAGE로 지정한다.
 

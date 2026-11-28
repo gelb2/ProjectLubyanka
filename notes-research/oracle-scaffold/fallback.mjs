@@ -6,6 +6,7 @@ import { hash } from './project.mjs';
 import { lockedPacket } from './worker.mjs';
 import { signedRows } from './politruk.mjs';
 import { otherProvider } from './provider.mjs';
+import { inspect } from './voenpred.mjs';
 
 const bans = {
   BUILD:'앞서 실패한 빌드 경로를 그대로 제출하지 않는다.', ORACLE:'등록한 실제 동작 검사를 빠뜨리지 않는다.',
@@ -86,7 +87,12 @@ export async function settle(root,action,approvalFile) {
   const ledger = await latest(root);
   if (!ledger) throw new Error('원장이 없습니다.');
   const task = ledger.tasks.find(t=>t.state !== 'DONE');
-  if (!task && action === 'integrate') return {status:'done',head:ledger.head};
+  if (action === 'integrate' && (!task || task.state === 'PENDING')) {
+    const done = ledger.tasks.find(t=>t.state === 'DONE' && t.merged === ledger.head);
+    if (done && currentRef(root) === ledger.ref && gitText(root,['rev-parse',ledger.ref]) === done.merged) {
+      return {status:'done',id:done.id,head:done.merged};
+    }
+  }
   if (task?.state !== 'POLITRUK_PASS') throw new Error('양쪽 판정이 필요한 작업입니다.');
   if (currentRef(root) !== ledger.ref || ledger.ref === 'refs/heads/main') throw new Error('배차된 작업 브랜치에서 실행하세요. main은 배포 승격 절차를 사용합니다.');
   const locked = await lockedPacket(root,task);
@@ -112,6 +118,10 @@ export async function settle(root,action,approvalFile) {
   if (task.offer && head === task.offer.merge) {
     if (gitText(root,['show','-s','--format=%P',head]) !== task.head + ' ' + task.offer.proposal ||
         gitText(root,['rev-parse',head + '^{tree}']) !== candidate.tree) throw new Error('병합 부모 또는 트리 불일치');
+    ledger.invariants ??= [];
+    for (const item of config.promote ?? []) {
+      if (!ledger.invariants.some(prior=>prior.quote === item.quote)) ledger.invariants.push({...item,task:task.id,tree:candidate.tree});
+    }
     ledger.head = head;
     task.state = 'DONE';
     task.merged = head;
@@ -123,10 +133,14 @@ export async function settle(root,action,approvalFile) {
   }
   if (head !== task.head) throw new Error('기준 브랜치가 이동했습니다.');
   if (!task.offer) {
+    const final = inspect(root,task,candidate,locked);
+    if (final.verdict !== 'PASS') return quarantine(root,ledger,task,'병합 후보 재검측 실패 · ' + final.stage);
+    const body = JSON.stringify(final);
+    task.mergeCheck = {revision:ledger.revision+1,digest:hash(body)};
     const proposal = gitText(root,['commit-tree',candidate.tree,'-p',head,'-m','Verified proposal ' + task.id]);
     const merge = gitText(root,['commit-tree',candidate.tree,'-p',head,'-p',proposal,'-m','Integrate verified ' + task.id]);
     task.offer = {proposal,merge};
-    await publish(root,ledger);
+    await publish(root,ledger,{'merge_check.json':body});
     git(root,['update-ref','refs/lubyanka/offers/' + task.token,merge]);
     if (action === 'offer') return {status:'ready',...task.offer};
     return settle(root,'integrate');
@@ -135,6 +149,21 @@ export async function settle(root,action,approvalFile) {
   if (gitText(root,['status','--porcelain']) || gitText(root,['rev-parse','--verify','HEAD']) !== task.head) throw new Error('기존 작업을 보존하기 위해 깨끗한 작업 트리가 필요합니다.');
   git(root,['merge','--ff-only',task.offer.merge]);
   return settle(root,'integrate');
+}
+
+export async function sealedPromotion(root,ref,old,next) {
+  const ledger = await latest(root);
+  const task = ledger?.tasks.find(t=>t.state !== 'DONE');
+  if (ledger?.ref !== ref || task?.state !== 'POLITRUK_PASS' || task.head !== old || task.offer?.merge !== next) return false;
+  const c = task.worker.candidates.find(c=>c.id === task.winner);
+  const valid = r => r.verdict === 'PASS' && r.target.tree === c.tree && r.target.token === task.token && r.target.id === task.id &&
+    r.target.attempt === task.attempt && r.target.head === old && r.target.lockHash === task.lockHash;
+  const machine = await signedRows(root,task.voenpred,'voenpred_report.json');
+  const semantic = await signedRows(root,task.politruk,'politruk_verdict.json');
+  const final = await signedRows(root,task.mergeCheck,'merge_check.json');
+  return machine.some(valid) && semantic.some(r=>valid(r) && r.id === c.id && ['codex','claude'].includes(r.provider)) && valid(final) &&
+    gitText(root,['show','-s','--format=%P',next]) === old + ' ' + task.offer.proposal &&
+    gitText(root,['rev-parse',next + '^{tree}']) === c.tree;
 }
 
 export async function recover(root) {

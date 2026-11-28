@@ -13,6 +13,7 @@ import { worker } from './worker.mjs';
 import { voenpred } from './voenpred.mjs';
 import { politruk } from './politruk.mjs';
 import { recover, retry, settle } from './fallback.mjs';
+import { execute } from './execute.mjs';
 
 async function main() {
   if (process.argv[2] === '_hook') {
@@ -50,6 +51,7 @@ async function main() {
     return report({ status: 'valid', version: policy.version });
   }
   const root = await realpath(path);
+  if (action === 'execute' && !source) return report(await execute(root,arg));
   if (action === 'gosplan') return report(await gosplan(root, arg, source));
   if (action === 'worker' && arg === 'run') return report(await worker(root, source));
   if (action === 'voenpred' && !arg) return report(await voenpred(root));
@@ -71,7 +73,11 @@ async function main() {
   throw new Error([
     'lubyanka <adopt|audit|install-hooks> <Git 루트>',
     'lubyanka contract <gost.json> [scope.json]',
-    'lubyanka gosplan <Git 루트> <prepare 지시폴더|dispatch|status>',
+    'lubyanka execute <Git 루트> [지시 폴더]',
+    'lubyanka gosplan <Git 루트> <prepare 지시폴더|replace 지시폴더|dispatch|status>',
+    'lubyanka worker <Git 루트> run [격리 시험 설정]',
+    'lubyanka <voenpred|politruk|retry|recover> <Git 루트>',
+    'lubyanka settle <Git 루트> <offer|integrate|approve 승인파일>',
     'lubyanka begin <Git 루트> <사용자 지시 파일> [--kind answer|development] [--resume]',
     'lubyanka plan <Git 루트> <계획 JSON>',
     'lubyanka permit <Git 루트> <작업 ID>',

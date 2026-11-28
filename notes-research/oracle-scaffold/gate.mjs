@@ -10,6 +10,7 @@ import { configName, hasText, hash, json, loadState, projectOracle, readProject,
 import { checkFinishExtension, checkHarness, reportPolicy, verifyReport } from './report.mjs';
 import { auditMethod } from './method-audit.mjs';
 import { executeScenarioGate } from './sharashka.mjs';
+import { sealedPromotion } from './fallback.mjs';
 
 const procedure = 'LUBYANKA-ORACLE.md';
 const reread = '자아비판문 전문을 다시 읽고 begin부터 시작하세요.';
@@ -373,6 +374,10 @@ export async function guardReferences(root, protectedBranch, text) {
     }
     const old = existing ? existing.stdout.toString().trim() : previous;
     if (old === next) continue;
+    if (target && await sealedPromotion(root,name,old,next)) {
+      await requireHooks(root,stateDir(root));
+      continue;
+    }
     const directory = stateDir(root);
     const { state, docs } = await current(root, directory);
     await requireHooks(root, directory);

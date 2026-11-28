@@ -143,7 +143,7 @@ function validateBasis(basis) {
   throw new Error('basis.json에 정본 경로 또는 격리 관측기(image, command)를 지정하세요.');
 }
 
-export async function prepare(root, control) {
+export async function prepare(root, control, replace = false) {
   const previous = await latest(root);
   const files = {};
   for (const name of ['orders.md', 'gost.json', 'scope.json', 'basis.json']) files[name] = await controlFile(control, name);
@@ -162,8 +162,12 @@ export async function prepare(root, control) {
   const digests = Object.fromEntries(Object.entries(files).map(([path, data]) => [path, hash(data)]));
   const campaign = hash(JSON.stringify(digests));
   const ref = gitText(root, ['symbolic-ref', 'HEAD']);
-  if (previous?.campaign === campaign && previous.ref === ref) return previous;
-  if (previous && previous.tasks.some(t => t.state !== 'DONE')) throw new Error('미완료 원장이 있어 새 지시 묶음을 열 수 없습니다.');
+  if (!replace && previous?.campaign === campaign && previous.ref === ref) return previous;
+  const held = previous?.tasks.find(t=>t.state !== 'DONE');
+  if (replace && (held?.state !== 'QUARANTINED' || previous.ref !== ref || previous.campaign === campaign)) {
+    throw new Error('격리된 작업과 변경한 사용자 입력이 필요합니다.');
+  }
+  if (!replace && held) throw new Error('미완료 원장이 있어 새 지시 묶음을 열 수 없습니다.');
   const head = gitText(root, ['rev-parse', ref]);
   for (const task of tasks) {
     const scope = validateScope(scopes[task.id], policy);
@@ -172,8 +176,17 @@ export async function prepare(root, control) {
     if (basis.contract && scope.write.some(path => pathsOverlap(path, basis.contract))) throw new Error('태스크가 기준 정본을 변경할 수 없습니다.');
     Object.assign(task, { state: 'PENDING', attempt: 0, rawHash: hash(raw) });
   }
+  if (replace) {
+    if (tasks.length !== previous.tasks.length || previous.head !== head) throw new Error('격리 작업 재발령의 기준과 전체 태스크 수를 확인하세요.');
+    for (const [i,task] of tasks.entries()) {
+      const prior = previous.tasks[i];
+      if (prior.id !== held.id && prior.rawHash !== task.rawHash) throw new Error('재발령 대상 밖 원문이 변경되었습니다.');
+      if (prior.state === 'DONE') Object.assign(task,prior,{start:task.start,end:task.end});
+    }
+  }
   const revision = previous?.revision ?? 0;
-  return publish(root, { version: 1, revision, inputRevision: revision + 1, campaign, ref, head, digests, tasks }, files);
+  return publish(root, { version: 1, revision, inputRevision: revision + 1, campaign, ref, head, digests, tasks,
+    invariants:previous?.invariants ?? [], supersedes:replace ? previous.campaign : undefined }, files);
 }
 
 export function observe(root, head, basis, scope) {
@@ -209,6 +222,7 @@ export async function dispatch(root) {
   const raw = inputs['orders.md'].subarray(task.start, task.end);
   if (hash(raw) !== task.rawHash) throw new Error('원문 구간이 원장과 다릅니다.');
   const policy = validateGost(json(inputs['gost.json'], 'gost.json'));
+  policy.method_locks = [...new Set([...policy.method_locks,...(ledger.invariants ?? []).map(row=>row.quote)])];
   const scope = validateScope(json(inputs['scope.json'], 'scope.json')[task.id], policy);
   const basis = json(inputs['basis.json'], 'basis.json');
   const protectedHashes = Object.create(null);
@@ -221,7 +235,7 @@ export async function dispatch(root) {
   for (const path of scope.read) baseFile(root, ledger.head, path);
   const fixtures = Object.fromEntries(scope.snapshots.map(path => [path, hash(baseFile(root, ledger.head, path))]));
   const baseline = observe(root, ledger.head, basis, scope);
-  const files = { 'raw_order.txt': raw, 'scope.json': JSON.stringify(scope), 'gost.json': inputs['gost.json'],
+  const files = { 'raw_order.txt': raw, 'scope.json': JSON.stringify(scope), 'gost.json': JSON.stringify(policy),
     'protected_hashes.json': JSON.stringify(protectedHashes), 'baseline.json': JSON.stringify({ baseline, fixtures }) };
   if (task.priorRecord) {
     const bytes = await controlFile(recordDir(root,task.priorRecord.revision),'anti_priors.json');
@@ -231,6 +245,10 @@ export async function dispatch(root) {
   if (inputs['checks.json']) {
     const checks = json(inputs['checks.json'], 'checks.json')[task.id];
     if (!checks || !checks.image) throw new Error('태스크의 독립 검사 설정이 없습니다.');
+    if (checks.promote !== undefined && (!Array.isArray(checks.promote) || !checks.promote.every(item=>
+      scope.intentional_constraints.includes(item?.quote) && typeof item?.metric === 'string' && Object.hasOwn(checks.oracle?.expected ?? {}, item.metric)))) {
+      throw new Error('승격 규칙은 원문 제약과 등록된 독립 관측을 지정해야 합니다.');
+    }
     files['checks.json'] = JSON.stringify({ ...checks, image:imageId(root, checks.image) });
   }
   if (!basis.contract) files['characterize.json'] = JSON.stringify({ ...basis, image:imageId(root, basis.image) });
@@ -245,6 +263,7 @@ export async function dispatch(root) {
 
 export async function gosplan(root, action, control) {
   if (action === 'prepare' && control) return prepare(root, control);
+  if (action === 'replace' && control) return prepare(root, control,true);
   if (action === 'dispatch' && !control) return dispatch(root);
   if (action === 'status' && !control) {
     const ledger = await latest(root);

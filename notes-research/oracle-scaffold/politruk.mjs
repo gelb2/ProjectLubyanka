@@ -60,7 +60,9 @@ export function checkEvidence(root,candidate,packet,value) {
     if (!size || +visual[1] >= size[0] || +visual[2] >= size[1]) throw new Error('실제 캡처 밖의 근거입니다.');
   } else {
     const match = /^(.+):([1-9]\d*) - \S/u.exec(verdict.evidence);
-    if (!match || ![...packet.measurements.paths,...packet.scope.read].includes(match[1])) throw new Error('후보 밖의 파일 근거입니다.');
+    if (!match || ![...packet.measurements.paths,...packet.scope.read].includes(match[1])) {
+      throw new Error('후보 근거의 경로 또는 한 줄 좌표 오류 · ' + verdict.evidence.split(' - ')[0].slice(0,120));
+    }
     const tree = gitText(root,['--literal-pathspecs','ls-tree',candidate.tree,'--',match[1]]) ? candidate.tree : candidate.head;
     const rows = baseFile(root,tree,match[1]).toString('utf8').replace(/\n$/u,'').split('\n').length;
     if (+match[2] > rows) throw new Error('후보 밖의 행 근거입니다.');
@@ -70,10 +72,15 @@ export function checkEvidence(root,candidate,packet,value) {
 }
 
 export function auditCandidate(root,candidate,packet,images = []) {
-  const assignment = assign(otherProvider(candidate.provider), name => oneShot(name,instruction,packet,images.map(i=>i.data)));
-  const verdict = checkEvidence(root,candidate,packet,assignment.response);
-  const {response, ...provider} = assignment;
-  return {...provider,...verdict};
+  const paths = [...new Set([...packet.measurements.paths,...packet.scope.read])];
+  const format = ' For a file citation use one listed path exactly, colon and one integer line number, then ASCII space-hyphen-space and the reason. Never use a line range, Markdown, or a diff prefix. Example format: ' + paths[0] + ':1 - reason.';
+  const {response,...provider} = assign(otherProvider(candidate.provider), name => oneShot(name,instruction + format,packet,images.map(i=>i.data)));
+  try {
+    return {...provider,...checkEvidence(root,candidate,packet,response)};
+  } catch (error) {
+    error.assignment = provider;
+    throw error;
+  }
 }
 
 export async function politruk(root) {
@@ -98,7 +105,7 @@ export async function politruk(root) {
       reports.push({id:candidate.id,target:row.target,...assignment,images:packet.images});
       if (verdict.verdict === 'PASS') break;
     } catch (error) {
-      reports.push({id:candidate.id,target:row.target,...assignment,verdict:'REJECT',stage:'INVALID_REVIEW',evidence:error.message.split(/\r?\n/u)[0].slice(0,400)});
+      reports.push({id:candidate.id,target:row.target,...(error.assignment ?? assignment),verdict:'REJECT',stage:'INVALID_REVIEW',evidence:error.message.split(/\r?\n/u)[0].slice(0,400)});
     }
   }
   const winner = reports.find(r=>r.verdict === 'PASS');
