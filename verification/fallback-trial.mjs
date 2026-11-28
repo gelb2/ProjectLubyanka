@@ -57,6 +57,12 @@ try {
   assert.equal(git('for-each-ref','--format=%(refname)','refs/lubyanka/candidates'),'');
   assert.equal(readFileSync(join(root,'calc.js'),'utf8'),'exports.value=0;\n');
   cli('gosplan',['dispatch'],1);
+  cli('execute',[],2);
+  cli('gosplan',['replace',control],1);
+  writeFileSync(join(control,'orders.md'),'1. Return 2 using numeric input.\n2. Preserve the API.\n');
+  const replacement=cli('gosplan',['replace',control]);
+  assert.ok(replacement.supersedes);
+  assert.equal(cli('gosplan',['dispatch']).attempt,1);
   console.log('Installed fallback: one local patch, clean attempts 2 and 3, protected prior evidence, three purges, next task closed.');
 } finally {
   rmSync(space,{recursive:true,force:true});

@@ -33,7 +33,7 @@ try {
     'pack', '--offline', '--ignore-scripts', '--json', '--pack-destination', workspace,
   ], source, 0).stdout)[0];
   assert.deepEqual(tarball.files.map(entry => entry.path).sort(), [
-    'README.md', 'engine.mjs', 'engine.test.mjs', 'fallback.mjs', 'gate.mjs', 'gosplan.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
+    'README.md', 'engine.mjs', 'engine.test.mjs', 'execute.mjs', 'fallback.mjs', 'gate.mjs', 'gosplan.mjs', 'hooks.mjs', 'lab.mjs', 'lifecycle.mjs', 'managed.md',
     'managed.mjs', 'method-audit.mjs', 'method-audit.test.mjs', 'oracle.mjs', 'oracle.test.mjs', 'package.json', 'pipeline-contract.mjs', 'pipeline-contract.test.mjs', 'pipeline.md', 'politruk.mjs', 'procedure.md', 'project.mjs',
     'provider.mjs', 'provider.test.mjs', 'report.mjs', 'self-critique.md', 'sharashka.mjs', 'voenpred.mjs', 'worker.mjs',
   ]);

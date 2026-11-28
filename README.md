@@ -9,12 +9,15 @@
 - [이관 검증과 릴리스 판정](verification/README.md)
 - [프로젝트 자아비판문](LUBYANKA-SELF-CRITIQUE.md) · [프로젝트 정답지](lubyanka-oracle.json)
 
+고스플란의 배차부터 샤라시카 생산, 보옌프레드 검측, 폴리트루크 감찰과 병합까지 `lubyanka execute`로 실행한다. 정상 배정은 Codex 작업자와 Claude 감찰관이다. [실행 계약과 재개 절차](notes-research/oracle-scaffold/pipeline.md)
+
 ## npm 설치
 
 사용 앱은 공식 npm에 공개된 정확한 버전만 설치한다. 잠금 파일의 공식 tarball 주소와 integrity를 확인하고 재설치에는 `npm ci`를 쓴다. 개발 체크아웃·Git 의존성·로컬 tgz·링크·설치 후 패치를 사용한 앱은 도입 판정을 보류한다.
 
 ```sh
-npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.4.0
+npm view lubyanka-oracle-scaffold@0.5.0 dist.integrity --registry=https://registry.npmjs.org/ &&
+  npm install --save-dev --save-exact --registry=https://registry.npmjs.org/ lubyanka-oracle-scaffold@0.5.0
 npm exec -- lubyanka adopt "$(git rev-parse --show-toplevel)"
 ```
 

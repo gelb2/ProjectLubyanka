@@ -2,7 +2,7 @@
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 cd "$root"
-target=$(git rev-parse --absolute-git-dir)/lubyanka-release-hooks
+target=$(git rev-parse --path-format=absolute --git-common-dir)/lubyanka-release-hooks
 previous=$(git rev-parse --path-format=absolute --git-path hooks)
 mkdir -p "$target"
 if [[ "$previous" != "$target" ]]; then
