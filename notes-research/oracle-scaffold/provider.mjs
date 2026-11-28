@@ -20,7 +20,7 @@ export function assign(preferred, invoke) {
 function unavailable(reason) {
   if (/rate.limit|quota|usage.limit|out of extra usage/i.test(reason)) return 'quota';
   if (/not logged in|login required|unauthorized|authentication failed|invalid.*token|please run.*login/i.test(reason)) return 'authentication';
-  if (/connection refused|connection reset|could not connect|service unavailable|server overloaded|stream disconnected|unable to connect/i.test(reason)) return 'service';
+  if (/connection refused|connection reset|could not connect|service unavailable|server overloaded|stream disconnected|unable to connect|\b(?:502|503|504)\b/i.test(reason)) return 'service';
 }
 
 export function oneShot(provider, instruction, packet, images = []) {
@@ -48,7 +48,7 @@ export function oneShot(provider, instruction, packet, images = []) {
       input = JSON.stringify({type:'user',message:{role:'user',content}}) + '\n';
     }
     const run = spawnSync(provider, args, { cwd: dir, input, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 180000, killSignal: 'SIGKILL' });
-    if (['ENOENT', 'ETIMEDOUT'].includes(run.error?.code)) throw new Unavailable(provider + '/' + run.error.code);
+    if (['ENOENT', 'EACCES', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH'].includes(run.error?.code)) throw new Unavailable(provider + '/' + run.error.code);
     if (run.error) throw run.error;
     let response;
     let diagnostic = '';

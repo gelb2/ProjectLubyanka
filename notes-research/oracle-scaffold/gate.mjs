@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { evaluateOracle, findUnresolved, phases, rulesForPhase } from './engine.mjs';
 import { command, git, gitText, imageId, runLab } from './lab.mjs';
 import { requireHooks } from './hooks.mjs';
 import { finish as documentReport, readRegularFile, resolveDocuments, start } from './lifecycle.mjs';
-import { configName, hasText, hash, json, loadState, readProject, save, stateDir, withLock } from './project.mjs';
+import { configName, hasText, hash, json, loadState, projectOracle, readProject, save, stateDir, withLock } from './project.mjs';
 import { checkFinishExtension, checkHarness, reportPolicy, verifyReport } from './report.mjs';
 import { auditMethod } from './method-audit.mjs';
 import { executeScenarioGate } from './sharashka.mjs';
@@ -15,8 +15,8 @@ const procedure = 'LUBYANKA-ORACLE.md';
 const reread = '자아비판문 전문을 다시 읽고 begin부터 시작하세요.';
 const reconsiderPhrases = ['근거는 없습니다', '철회합니다'];
 
-function oracleIssues(name, content) {
-  return findUnresolved(json(content, name));
+function oracleIssues(name, content, profile) {
+  return findUnresolved(projectOracle(json(content, name),profile));
 }
 
 function integration(root, docs, optional = false) {
@@ -94,7 +94,7 @@ export async function begin(root, requestFile, { kind = 'development', resume = 
         throw new Error('같은 요청의 미해결 검증 기록이 있습니다. begin --resume으로 이어 가세요.');
       }
       const paths = await resolveDocuments(root, docs.config.oracle, docs.config.selfCritique, procedure);
-      await start(root, paths, reviewPath, new Set(), oracleIssues, { quiet: true });
+      await start(root, paths, reviewPath, new Set(), (name,content)=>oracleIssues(name,content,docs.config.oracleProfile), { quiet: true });
     }
     await save(directory, 'task.json', {
       root, task, kind, resumed: resume, instruction, head: head(root), baseline: integration(root, docs, true),
@@ -258,7 +258,7 @@ export async function verify(root, phase, source, { manualFile, scenarioFile } =
         }
         const review = runLab(root, baseline, evidence.image, baselineConfig.reviewPlan, state.plan);
         evidence.planReview = { ...review, tree: baseline };
-        if (review.exitCode !== 0) throw new Error('독립 계획 검토 명령이 실패했습니다.');
+        if (review.exitCode !== 0) throw new Error('독립 계획 검토 명령 실패 · ' + review.exitCode + ' · ' + review.stderr.trim().slice(-800));
         const output = json(review.stdout, '독립 계획 검토 결과');
         if (!Array.isArray(output?.reasons) || !output.reasons.length || !output.reasons.every(hasText) ||
             output.accepted !== true) {
@@ -340,6 +340,20 @@ export async function guardCommit(root, protectedBranch) {
   }
 }
 
+async function prunesPackedCopy(root, name, old) {
+  if (!/^[a-f0-9]{40,64}$/u.test(old) || /^0+$/u.test(old)) return false;
+  const file = gitText(root,['rev-parse','--path-format=absolute','--git-path','packed-refs']);
+  const loose = gitText(root,['rev-parse','--path-format=absolute','--git-path',name]);
+  try {
+    if (await stat(file + '.lock').then(()=>true,error=>{ if (error.code === 'ENOENT') return false; throw error; })) return false;
+    const [packed,bytes] = await Promise.all([readFile(file,'utf8'),readFile(loose,'utf8')]);
+    return bytes.trim() === old && packed.split('\n').includes(old + ' ' + name);
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
 export async function guardReferences(root, protectedBranch, text) {
   const ref = `refs/heads/${protectedBranch}`;
   for (const line of text.split('\n')) {
@@ -347,7 +361,7 @@ export async function guardReferences(root, protectedBranch, text) {
     if (!name?.startsWith('refs/heads/')) continue;
     const target = name === ref;
     if (/^0+$/.test(next) || !/^[a-f0-9]+$/.test(next)) {
-      if (target) throw new Error('통합 브랜치 삭제·대상 변경은 이 작업에서 허용되지 않습니다. 샤라시카로 병합을 검증하세요.');
+      if (target && !( /^0+$/.test(next) && await prunesPackedCopy(root,name,previous))) throw new Error('통합 브랜치 삭제·대상 변경은 이 작업에서 허용되지 않습니다. 샤라시카로 병합을 검증하세요.');
       continue;
     }
     if (previous === next) continue;
@@ -358,6 +372,7 @@ export async function guardReferences(root, protectedBranch, text) {
       if (listed.includes(next)) continue;
     }
     const old = existing ? existing.stdout.toString().trim() : previous;
+    if (old === next) continue;
     const directory = stateDir(root);
     const { state, docs } = await current(root, directory);
     await requireHooks(root, directory);
@@ -448,7 +463,7 @@ export async function finish(root, stage) {
       throw new Error('종료 검토 중 보고 후보가 바뀌었습니다.');
     }
     const summary = failed ? result.summary : { stage, tree: result.tree, sharashka: join(directory, result.filename) };
-    const approved = await documentReport(root, state.reviewPath, true, procedure, oracleIssues, { ...summary, report, extension }, review);
+    const approved = await documentReport(root, state.reviewPath, true, procedure, (name,content)=>oracleIssues(name,content,docs.config.oracleProfile), { ...summary, report, extension }, review);
     await save(directory, `report-${state.task}-${stage}.json`, approved);
     if (!failed) await save(directory, 'task.json', { ...state, finished: stage });
     console.log(JSON.stringify(approved, null, 2));

@@ -1,5 +1,61 @@
 {
   "schemaVersion": 1,
+  "executionProfiles": {
+    "producer": {
+      "requirements": [
+        {
+          "requirementId": "PRODUCER-RAW",
+          "source": "개발자 원고 1~6 및 원문 보존 지시",
+          "scope": "생산자 저장소 원본 여섯 건",
+          "inputs": "접수 기록의 해시와 각 chat.txt 바이트를 대조한다.",
+          "comparator": "exact",
+          "assertion": {
+            "expected": 6
+          },
+          "expectedOrRule": "접수한 여섯 원고의 SHA-256이 모두 일치한다.",
+          "requiredEvidence": [
+            "원고별 지문 대조로 얻은 일치 건수"
+          ],
+          "unresolved": [],
+          "phases": [
+            "plan",
+            "feature",
+            "merge"
+          ],
+          "reportCases": {
+            "originals": [
+              "measurement"
+            ]
+          }
+        },
+        {
+          "requirementId": "PRODUCER-UNIT",
+          "source": "생산자 자체 디버깅과 검증 없는 완료 금지 지시",
+          "scope": "공용 패키지의 자동 회귀 시험",
+          "inputs": "npm test를 실행해 실패 수, 실제 통과 수와 종료 코드를 읽는다.",
+          "comparator": "range",
+          "assertion": {
+            "min": 22
+          },
+          "expectedOrRule": "기존 회귀 시험 22건 이상을 통과하고 실패가 0건이다.",
+          "requiredEvidence": [
+            "실제 시험 러너 통과 수와 종료 코드"
+          ],
+          "unresolved": [],
+          "phases": [
+            "plan",
+            "feature",
+            "merge"
+          ],
+          "reportCases": {
+            "runtime": [
+              "measurement"
+            ]
+          }
+        }
+      ]
+    }
+  },
   "requirements": [
     {
       "requirementId": "SPLIT-01",

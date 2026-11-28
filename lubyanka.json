@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "integrationBranch": "develop",
+  "image": "node:22-bookworm-slim",
+  "contract": "governance/LUBYANKA.md",
+  "oracle": "lubyanka-oracle.json",
+  "oracleProfile": "producer",
+  "selfCritique": "LUBYANKA-SELF-CRITIQUE.md",
+  "pathCritiques": [],
+  "methodAudit": "verification/producer-basis.json",
+  "methodReview": [
+    "node",
+    "verification/producer-check.mjs",
+    "method"
+  ],
+  "reviewPlan": [
+    "node",
+    "verification/producer-check.mjs",
+    "plan"
+  ],
+  "reportReview": [
+    "node",
+    "verification/producer-check.mjs",
+    "report"
+  ],
+  "checkSources": [
+    "verification/producer-check.mjs"
+  ],
+  "checks": {
+    "plan": [
+      [
+        "node",
+        "verification/producer-check.mjs",
+        "measure"
+      ]
+    ],
+    "feature": [
+      [
+        "node",
+        "verification/producer-check.mjs",
+        "measure"
+      ]
+    ],
+    "merge": [
+      [
+        "node",
+        "verification/producer-check.mjs",
+        "measure"
+      ]
+    ]
+  }
+}

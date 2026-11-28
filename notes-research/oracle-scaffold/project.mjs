@@ -108,6 +108,15 @@ export async function adopt(root) {
   });
 }
 
+export function projectOracle(manifest, profile) {
+  if (profile === undefined) return manifest;
+  const scoped = manifest.executionProfiles?.[profile];
+  if (!Object.hasOwn(manifest.executionProfiles ?? {},profile) || !Array.isArray(scoped?.requirements) || !scoped.requirements.length) {
+    throw new Error('등록된 실행 정답 범위가 필요합니다.');
+  }
+  return {schemaVersion:manifest.schemaVersion,requirements:scoped.requirements};
+}
+
 export async function readProject(root) {
   const { file, config } = await configFor(root);
   const [instructions, contract, oracle, ...critique] = await Promise.all([
@@ -121,7 +130,7 @@ export async function readProject(root) {
   if (!instructions.content.includes(managedMarker)) throw new Error('AGENTS.md의 루비얀카 절차를 복구하세요.');
   return {
     config, instructions, contract, oracle, critique,
-    manifest: json(oracle.content, oracle.path),
+    manifest: projectOracle(json(oracle.content, oracle.path), config.oracleProfile),
     hashes: Object.fromEntries(all.map(item => [item.path, item.sha256])),
   };
 }
