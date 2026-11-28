@@ -8,6 +8,7 @@ import { installHooks } from './hooks.mjs';
 import { command } from './lab.mjs';
 import { adopt, json } from './project.mjs';
 import { validateGost, validateScope } from './pipeline-contract.mjs';
+import { gosplan } from './gosplan.mjs';
 
 async function main() {
   if (process.argv[2] === '_hook') {
@@ -45,6 +46,7 @@ async function main() {
     return report({ status: 'valid', version: policy.version });
   }
   const root = await realpath(path);
+  if (action === 'gosplan') return report(await gosplan(root, arg, source));
   if (action === 'adopt' && !arg) return report(await adopt(root));
   if (action === 'audit' && !arg) return report(await audit(root));
   if (action === 'install-hooks' && !arg) return report(await installHooks(root));
@@ -59,6 +61,7 @@ async function main() {
   throw new Error([
     'lubyanka <adopt|audit|install-hooks> <Git 루트>',
     'lubyanka contract <gost.json> [scope.json]',
+    'lubyanka gosplan <Git 루트> <prepare 지시폴더|dispatch|status>',
     'lubyanka begin <Git 루트> <사용자 지시 파일> [--kind answer|development] [--resume]',
     'lubyanka plan <Git 루트> <계획 JSON>',
     'lubyanka permit <Git 루트> <작업 ID>',

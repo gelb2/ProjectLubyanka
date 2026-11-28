@@ -14,4 +14,12 @@
 | 보옌프레드 · 기계 판정 | 동일 TASK-ID·시도·잠금 지문·기준 커밋·후보 트리에 검사 단계·실측·성공 또는 실패를 연결한다. 필수 입력 누락과 판정 불능은 실패로 기록한다. |
 | 폴리트루크 · 의미 판정 | 응답은 `verdict`, `category`, 한 줄 `evidence`를 갖는다. PASS에는 NONE, REJECT에는 MISSING_REQ·SCOPE_SHRINK·REGRESSION·CHEAT·OVERREACH·VISUAL_DRIFT 중 하나를 쓴다. 관리 계층이 응답을 실제 근거 및 같은 후보의 기계 판정에 연결한다. |
 
+## 고스플란 실행
+
+`lubyanka gosplan <Git 루트> prepare <지시 폴더>`는 지시 폴더의 `orders.md`, `gost.json`, `scope.json`, `basis.json`을 봉인한다. `scope.json`은 TASK-01부터 원문 순서대로 각 ID에 위 표의 범위를 연결한 객체다. 번호는 첫 열에서 `1. 본문`으로 시작한다. 들여쓴 번호와 코드 블록은 상위 항목의 본문에 포함한다. 새 파일도 쓰기 범위에 명시할 수 있다.
+
+정본이 있는 프로젝트는 `basis.json`에 `{"contract":"docs/contract.md"}`를 지정한다. 브라운필드는 `{"image":"이미지 ID","command":["node","characterize.mjs"]}`와 같이 검토한 관측기를 지정한다. 관측기는 기준 커밋의 격리 환경에서 표준 입력으로 기준 커밋·범위를 받고, 실제 `cases`(input·output)와 공개 `signatures`를 JSON으로 반환한다.
+
+`lubyanka gosplan <Git 루트> dispatch`가 첫 미완료 태스크의 배차권을 한 번 발급한다. `status`는 현재 원장을 읽는다. 각 판본의 `ledger.json`과 배차 시점의 `lock/<TASK-ID>/`는 Git 공용 관리 디렉터리의 `lubyanka/gosplan/<판본>/`에 있다. CLI가 출력한 lock 경로는 관리자가 읽는다. 워커 입력은 그중 허용된 부분으로 구성한다.
+
 PENDING → IN_PROGRESS → VOENPRED_PASS → POLITRUK_PASS → DONE 순서로 진행한다. 원장이 두 판정과 같은 후보의 병합을 확인한 뒤 다음 태스크를 연다. 재시도는 PURGED, 사용자 개입이 필요한 중단은 QUARANTINED로 기록한다. 관리 계층이 원문과 기획 정본을 읽고 필수 시험과 종료 보고를 담당한다. 작업자와 감찰관에는 해당 계약과 필요한 근거만 전달한다.
