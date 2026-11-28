@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "requirements": [
+    {
+      "id": "PRODUCER-RAW",
+      "basis": "6개 원고의 불변 접수 지문",
+      "approved": {
+        "source": "개발자 원고 1~6 및 원문 보존 지시",
+        "scope": "생산자 저장소 원본 여섯 건",
+        "inputs": "접수 기록의 해시와 각 chat.txt 바이트를 대조한다.",
+        "expectedOrRule": "접수한 여섯 원고의 SHA-256이 모두 일치한다.",
+        "comparator": "exact",
+        "assertion": {
+          "expected": 6
+        },
+        "requiredEvidence": [
+          "원고별 지문 대조로 얻은 일치 건수"
+        ],
+        "phases": [
+          "plan",
+          "feature",
+          "merge"
+        ]
+      },
+      "accept": 6,
+      "reject": 5
+    },
+    {
+      "id": "PRODUCER-UNIT",
+      "basis": "설치본 0건 시험과 생산자 회귀 기준",
+      "approved": {
+        "source": "생산자 자체 디버깅과 검증 없는 완료 금지 지시",
+        "scope": "공용 패키지의 자동 회귀 시험",
+        "inputs": "npm test를 실행해 실패 수, 실제 통과 수와 종료 코드를 읽는다.",
+        "expectedOrRule": "기존 회귀 시험 22건 이상을 통과하고 실패가 0건이다.",
+        "comparator": "range",
+        "assertion": {
+          "min": 22
+        },
+        "requiredEvidence": [
+          "실제 시험 러너 통과 수와 종료 코드"
+        ],
+        "phases": [
+          "plan",
+          "feature",
+          "merge"
+        ]
+      },
+      "accept": 22,
+      "reject": 0
+    }
+  ],
+  "incidents": [
+    {
+      "requirement": "PRODUCER-UNIT",
+      "path": "LUBYANKA-SELF-CRITIQUE.md",
+      "reason": "패키지 설치 성공을 방법론 실행과 혼동했던 판단",
+      "technicalCause": "실행 증거를 비운 종료 검토와 샤라시카 없는 합성 브랜치의 커밋·병합도 성공했다.",
+      "correction": "실제 행동을 검사하는 입력과 그 결론을 뒤집는 관측을 먼저 정한다.",
+      "verification": "같은 경로를 다시 실행한다."
+    }
+  ]
+}

@@ -63,7 +63,7 @@ export function auditMethod(root, docs, baseline, tree, image) {
   const run = runLab(root, baseline, image, reviewer, undefined, {
     reportInput: { oracle: docs.manifest, critique: docs.critique, contract: docs.contract, basis: contract.value },
   });
-  if (run.exitCode !== 0) throw new Error('독립 자아비판·정답 서술 검토 명령에 실패했습니다.');
+  if (run.exitCode !== 0) throw new Error('독립 자아비판·정답 서술 검토 명령 실패 · ' + run.exitCode + ' · ' + run.stderr.trim().slice(-800));
   const review = json(run.stdout, '자아비판·정답 검토 결과');
   if (!Array.isArray(review?.reasons) || !review.reasons.length || !review.reasons.every(hasText) || review.accepted !== true) {
     return { ...report, status: 'fail', issues: review?.reasons ?? ['독립 검토 결과 누락'] };

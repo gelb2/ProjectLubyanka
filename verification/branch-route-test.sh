@@ -28,4 +28,10 @@ git branch next-feature develop
 git switch -q main
 git merge -q --no-ff develop -m promotion
 test "$(git rev-parse 'main^{tree}')" = "$(git rev-parse 'develop^{tree}')"
-echo 'Branch checks passed: rejected direct feature promotion and off-main development, accepted develop promotion.'
+before=$(git rev-parse main develop)
+git pack-refs --all
+test "$(git rev-parse main develop)" = "$before"
+if git update-ref -d refs/heads/main "$(git rev-parse main)" >/dev/null 2>&1; then exit 1; fi
+if git update-ref -d refs/heads/develop >/dev/null 2>&1; then exit 1; fi
+test "$(git rev-parse main develop)" = "$before"
+echo 'Branch checks passed: route, packing and protected deletions.'
