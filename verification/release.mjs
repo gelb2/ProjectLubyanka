@@ -42,6 +42,8 @@ try {
   await mkdir(install);
   run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', archive], install);
   const bin = join(install, 'node_modules', '.bin', 'lubyanka');
+  const pipeline = fileURLToPath(new URL('./pipeline.mjs', import.meta.url));
+  process.stdout.write(run(process.execPath, [pipeline, bin, image], install).stdout);
   const legacy = join(install, 'node_modules', '.bin', 'lubyanka-oracle');
   run(process.execPath, ['--input-type=module', '-e',
     "import { evaluateOracle } from 'lubyanka-oracle-scaffold'; if (typeof evaluateOracle !== 'function') process.exit(1);"], install);
