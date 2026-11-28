@@ -125,7 +125,8 @@ export async function worker(root, fixturePath) {
   const reserved = await publish(root, ledger);
   try {
     const packet = sourcePacket(root, task, locked, task.patchTree ?? task.head);
-    if (task.antiPriors?.length) packet.anti_priors = task.antiPriors;
+    if (locked['anti_priors.json']) packet.anti_priors = locked['anti_priors.json'];
+    if (task.patchReason) packet.build_failure = task.patchReason;
     const input = { kind:'sharashka', root, fixture, packet, preferred:task.preferred ?? 'codex' };
     const results = await Promise.allSettled(Array.from({length:count}, () => isolatedCall(input)));
     for (const result of results) {

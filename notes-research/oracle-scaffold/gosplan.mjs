@@ -198,7 +198,7 @@ export async function dispatch(root) {
   const ledger = await latest(root);
   if (!ledger) throw new Error('먼저 고스플란 원장을 준비하세요.');
   const task = ledger.tasks.find(t => t.state !== 'DONE');
-  if (!task || task.state !== 'PENDING') throw new Error('새 배차를 허용할 선두 태스크가 없습니다.');
+  if (!task || !['PENDING','PURGED'].includes(task.state)) throw new Error('새 배차를 허용할 선두 태스크가 없습니다.');
   if (gitText(root, ['rev-parse', ledger.ref]) !== ledger.head) throw new Error('승인한 기준 커밋이 이동했습니다.');
   const source = recordDir(root, ledger.inputRevision);
   const inputs = {};
@@ -223,6 +223,11 @@ export async function dispatch(root) {
   const baseline = observe(root, ledger.head, basis, scope);
   const files = { 'raw_order.txt': raw, 'scope.json': JSON.stringify(scope), 'gost.json': inputs['gost.json'],
     'protected_hashes.json': JSON.stringify(protectedHashes), 'baseline.json': JSON.stringify({ baseline, fixtures }) };
+  if (task.priorRecord) {
+    const bytes = await controlFile(recordDir(root,task.priorRecord.revision),'anti_priors.json');
+    if (hash(bytes) !== task.priorRecord.digest) throw new Error('재시도 금지 조건 지문이 다릅니다.');
+    files['anti_priors.json'] = bytes;
+  }
   if (inputs['checks.json']) {
     const checks = json(inputs['checks.json'], 'checks.json')[task.id];
     if (!checks || !checks.image) throw new Error('태스크의 독립 검사 설정이 없습니다.');

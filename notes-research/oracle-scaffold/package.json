@@ -26,6 +26,7 @@
     "provider.mjs",
     "worker.mjs",
     "voenpred.mjs",
+    "fallback.mjs",
     "politruk.mjs",
     "report.mjs",
     "method-audit.mjs",

@@ -32,6 +32,12 @@
 
 원문, 적용 규칙, 인접 인터페이스, diff, 실측을 보낸다. UI 작업은 범위에 `visual: true`를 쓰고, 기준 PNG를 `snapshots`에 등록한다. `checks.json`의 `visual.reference`는 그 경로다. `visual.command`는 후보를 렌더링하고 표준 출력으로 `{"png":"PNG 바이트의 base64"}`를 반환한다. 두 이미지의 크기와 지문을 기록한다. 반려 근거는 후보 파일의 실제 행 또는 이미지 안 좌표와 연결한다.
 
+## 반려와 정산
+
+`lubyanka retry <Git 루트>`가 저장된 REJECT를 읽는다. 등록된 단일 국소 BUILD 오류에는 태스크당 최대 한 번 같은 후보에서 새 워커를 허용한다. 나머지 구조적 실패에서는 후보 참조를 폐기하고 금지 조건을 고정한다. 다음 `gosplan dispatch`는 원래 기준 커밋에서 다시 배차한다. 세 번 폐기하거나 판정 불능이면 QUARANTINED와 종료 코드 2를 반환한다. 실행 중 관리 프로세스가 끊기면 `lubyanka recover <Git 루트>`로 해당 예약을 격리한다.
+
+`lubyanka settle <Git 루트> offer`는 두 판정과 같은 트리의 제안 커밋과 병합 커밋을 준비한다. `integrate`는 깨끗한 작업 브랜치에서 그 커밋을 반영한다. 부모·트리를 다시 읽은 뒤 DONE을 기록하고 직렬 배차를 연다. 중단 후 같은 명령을 다시 실행할 수 있다. `checks.json`의 `risk: "high"`와 인증·결제·마이그레이션 등 위험 경로는 별도 승인을 기다린다. 관리자는 응답의 task·token·tree와 `decision: "APPROVE"`를 파일에 기록해 `settle <Git 루트> approve <파일>`로 승인한다. main은 저장소의 정식 배포 절차를 거친다.
+
 ## 고스플란 실행
 
 `lubyanka gosplan <Git 루트> prepare <지시 폴더>`는 지시 폴더의 `orders.md`, `gost.json`, `scope.json`, `basis.json`을 봉인한다. `scope.json`은 TASK-01부터 원문 순서대로 각 ID에 위 표의 범위를 연결한 객체다. 번호는 첫 열에서 `1. 본문`으로 시작한다. 들여쓴 번호와 코드 블록은 상위 항목의 본문에 포함한다. 새 파일도 쓰기 범위에 명시할 수 있다.
