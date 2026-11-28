@@ -14,6 +14,12 @@
 | 보옌프레드 · 기계 판정 | 동일 TASK-ID·시도·잠금 지문·기준 커밋·후보 트리에 검사 단계·실측·성공 또는 실패를 연결한다. 필수 입력 누락과 판정 불능은 실패로 기록한다. |
 | 폴리트루크 · 의미 판정 | 응답은 `verdict`, `category`, 한 줄 `evidence`를 갖는다. PASS에는 NONE, REJECT에는 MISSING_REQ·SCOPE_SHRINK·REGRESSION·CHEAT·OVERREACH·VISUAL_DRIFT 중 하나를 쓴다. 관리 계층이 응답을 실제 근거 및 같은 후보의 기계 판정에 연결한다. |
 
+## 샤라시카 실행
+
+`lubyanka worker <Git 루트> run`이 배차된 태스크에서 Codex를 일회용 작업자로 호출한다. 서비스·인증·할당량·호출 시간 초과로 사용할 수 없으면 Claude를 새로 호출하고 실제 배정과 이유를 기록한다. 잘못된 응답과 반려는 다른 모델의 승인으로 바꿀 수 없다. 임시 빈 디렉터리에서 실행하며 모델은 허용한 파일의 전체 변경 제안만 제출한다. 관리자가 별도 인덱스에서 후보를 만든다. 선택 사항인 범위 필드 `candidates: 2`는 같은 태스크의 독립 후보를 두 번 생산한다. 각 프로세스는 고유 작업공간을 사용한다.
+
+같은 명령 끝에 격리 시험용 JSON 경로를 붙이면 관리자가 지정한 로컬 Docker 이미지와 명령을 실행한다. 이 결과에는 `provider: fixture`가 기록된다. 공급자 실행 방식은 [Codex 비대화형 실행](https://developers.openai.com/codex/noninteractive/)과 [Claude CLI](https://code.claude.com/docs/en/cli-reference)를 따른다.
+
 ## 고스플란 실행
 
 `lubyanka gosplan <Git 루트> prepare <지시 폴더>`는 지시 폴더의 `orders.md`, `gost.json`, `scope.json`, `basis.json`을 봉인한다. `scope.json`은 TASK-01부터 원문 순서대로 각 ID에 위 표의 범위를 연결한 객체다. 번호는 첫 열에서 `1. 본문`으로 시작한다. 들여쓴 번호와 코드 블록은 상위 항목의 본문에 포함한다. 새 파일도 쓰기 범위에 명시할 수 있다.

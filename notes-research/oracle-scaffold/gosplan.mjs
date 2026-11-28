@@ -178,7 +178,7 @@ function observe(root, head, basis, scope) {
     return { contract: basis.contract, sha256: hash(bytes) };
   }
   const result = runLab(root, head, imageId(root, basis.image), basis.command, undefined,
-    { reportInput: Buffer.from(JSON.stringify({ head, scope })) });
+{ reportInput: { head, scope } });
   if (result.exitCode !== 0) throw new Error('특성화 관측기가 기준 커밋에서 실패했습니다.');
   const snapshot = json(result.stdout, '특성화 관측');
   if (!Array.isArray(snapshot?.cases) || !snapshot.cases.length ||
