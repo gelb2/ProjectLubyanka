@@ -40,7 +40,8 @@ export function validateGost(policy) {
 }
 
 export function validateScope(scope, policy) {
-  requireFields(scope, ['write', 'read', 'snapshots', 'intentional_constraints']);
+  requireFields(scope, ['write', 'read', 'snapshots', 'intentional_constraints'], ['candidates']);
+  if ('candidates' in scope && ![1, 2].includes(scope.candidates)) throw new Error('허용 후보 수는 1 또는 2입니다.');
   for (const key of ['write', 'read', 'snapshots']) list(scope[key], key, repoPath);
   list(scope.intentional_constraints, 'intentional_constraints', hasText);
   const immutable = [...policy.protected_paths, ...scope.read, ...scope.snapshots];

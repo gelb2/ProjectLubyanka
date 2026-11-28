@@ -23,6 +23,8 @@
     "lab.mjs",
     "gate.mjs",
     "gosplan.mjs",
+    "provider.mjs",
+    "worker.mjs",
     "report.mjs",
     "method-audit.mjs",
     "pipeline-contract.mjs",

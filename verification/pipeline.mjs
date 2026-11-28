@@ -7,8 +7,10 @@ import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
 const execute = promisify(execFile);
-const binary = resolve(process.argv[2]);
-const dir = await mkdtemp(join(tmpdir(), 'lubyanka-pipeline-'));
+const { realpath } = await import('node:fs/promises');
+const { pathToFileURL } = await import('node:url');
+const binary = await realpath(resolve(process.argv[2]));
+const dir = await realpath(await mkdtemp(join(tmpdir(), 'lubyanka-pipeline-')));
 const root = join(dir, 'project');
 const input = join(dir, 'input');
 const env = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
@@ -33,7 +35,7 @@ try {
   const original = git('rev-parse', 'HEAD');
   const order1 = '1. 한글\t수정\r\n    2. 하위 예시\r\n~~~text\r\n7. 코드\r\n~~~\r\n';
   const order2 = '2. 두 번째';
-  const scope = { write: ['app.js'], read: [], snapshots: [], intentional_constraints: ['한글'] };
+  const scope = { write: ['app.js'], read: [], snapshots: [], intentional_constraints: ['한글'], candidates: 2 };
   const scopes = { 'TASK-01': scope, 'TASK-02': { ...scope, intentional_constraints: [] } };
   await jsonFile('gost.json', { version: 1, method_locks: ['기준 보존'], forbidden_shortcuts: ['test.skip'], protected_paths: ['reference.txt'], visual_tokens: {} });
   await jsonFile('scope.json', scopes);
@@ -72,6 +74,37 @@ try {
   assert.equal(state.tasks[1].attempt, 0);
   await fails(['dispatch'], /선두/);
   assert.deepEqual(await run('status'), state);
+  if (image) {
+    const { worker, lockedPacket, candidateTree } = await import(new URL('./worker.mjs', pathToFileURL(binary)));
+    const task = state.tasks[0];
+    const rawPath = join(permit.lock, 'raw_order.txt');
+    const { chmod } = await import('node:fs/promises');
+    await chmod(rawPath, 0o600);
+    await writeFile(rawPath, 'modified');
+    await assert.rejects(worker(root), /봉인/);
+    await writeFile(rawPath, order1);
+    assert.equal((await lockedPacket(root, task))['raw_order.txt'], order1);
+    assert.throws(() => candidateTree(root, original, scope, [{path:'reference.txt',text:'x'}]), /범위/);
+    const code = [
+      "const fs=require('fs'), assert=require('assert/strict');",
+      "const input=JSON.parse(fs.readFileSync(0)); assert.deepEqual(Object.keys(input.files), ['app.js']);",
+      "assert.equal(input.raw_order," + JSON.stringify(order1) + "); assert.deepEqual(fs.readdirSync('.'),[]);",
+      "assert.equal(fs.existsSync('/work/.git'), false); fs.writeFileSync('scratch','local');",
+      "assert.equal(Object.values(require('os').networkInterfaces()).flat().filter(a=>!a.internal).length,0);",
+      "console.log(JSON.stringify({status:'PROPOSED',dissent:'',changes:[{path:'app.js',text:'exports.run = n => n + 2;\\n'}]}));"
+    ].join('\n');
+    await jsonFile('fixture.json', {image,command:['node','-e',code]});
+    const result = JSON.parse((await execute(process.execPath, [binary,'worker',root,'run',join(input,'fixture.json')],{env})).stdout);
+    assert.equal(result.candidates.length, 2);
+    assert.equal(new Set(result.candidates.map(c=>c.id)).size, 2);
+    for (const candidate of result.candidates) {
+      assert.equal(git('show',candidate.tree + ':app.js'), 'exports.run = n => n + 2;');
+      assert.equal(candidate.lockHash, task.lockHash);
+      assert.equal(candidate.provider,'fixture');
+    }
+    assert.equal(git('show',':app.js'),git('show','HEAD:app.js'));
+    await assert.rejects(worker(root), /배차/);
+  }
   assert.equal(git('status','--porcelain'), '');
   console.log('Installed Gosplan: lossless bytes, invalid-input refusal, prior HEAD and protection, one winning dispatch, next task closed.');
 } finally {
